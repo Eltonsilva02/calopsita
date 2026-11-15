@@ -1,0 +1,2292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>As Primeiras 48 Horas com a Sua Calopsita | Guia Prático</title>
+  
+  <!-- WhatsTrack Direct Response Pixel Tracker -->
+  <script>
+  (function() {
+    // 1. Inicializa o Meta Pixel nativo
+    if (!window.fbq) {
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+    }
+
+    fbq('init', '1607991243938020');
+    fbq('track', 'PageView');
+
+    // 2. Captura UTMs, fbclid e cookies para alta pontuação no CAPI
+    function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
+    function setCookie(n,v,d){var dt=new Date();dt.setTime(dt.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+dt.toUTCString()+';path=/;SameSite=Lax';}
+
+    function isValidFbclid(val){
+      if(!val||typeof val!=='string') return false;
+      val=val.trim();
+      if(val.length<20||val==='null'||val==='undefined'||val==='none'||val==='false'||val==='fbclid') return false;
+      if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)) return false;
+      if(/^(clk_|ord_|tra_|pay_|chk_|ref_|sub_|lead_|usr_)/i.test(val)) return false;
+      return /^[a-zA-Z0-9_-]+$/.test(val);
+    }
+
+    function isValidFbc(val){
+      if(!val||typeof val!=='string') return false;
+      var parts = val.split('.');
+      if(parts.length < 4) return false;
+      if(parts[0] !== 'fb' || parts[1] !== '1') return false;
+      if(!/^[0-9]{10,14}$/.test(parts[2])) return false;
+      var fbclidPart = parts.slice(3).join('.');
+      return isValidFbclid(fbclidPart);
+    }
+
+    var fbp = getCookie('_fbp');
+    if(!fbp){
+      fbp = 'fb.1.' + Date.now() + '.' + Math.floor(1e9 + Math.random()*9e9);
+      setCookie('_fbp', fbp, 90);
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var activeTracking = {};
+    
+    // Coleta todos os parâmetros da URL atual
+    params.forEach(function(val, key) {
+      if (val && typeof val === "string") {
+        var clean = val.trim();
+        activeTracking[key] = clean;
+        try { sessionStorage.setItem("wt_" + key, clean); } catch(e){}
+        try { localStorage.setItem("wt_" + key, clean); } catch(e){}
+      }
+    });
+
+    // Recupera parâmetros padrão persistidos se não estiverem na URL atual
+    var standardKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id", "src", "sck", "fbclid", "gclid", "ttclid", "xcod"];
+    standardKeys.forEach(function(key) {
+      if (!activeTracking[key]) {
+        try {
+          var saved = sessionStorage.getItem("wt_" + key) || localStorage.getItem("wt_" + key);
+          if (saved) activeTracking[key] = saved;
+        } catch(e){}
+      }
+    });
+
+    // Preservação estrita do _fbc existente apenas se for legítimo da Meta
+    var existingFbc = getCookie('_fbc');
+    if (existingFbc && isValidFbc(existingFbc)) {
+      activeTracking.fbc = existingFbc;
+    } else {
+      if (existingFbc && !isValidFbc(existingFbc)) {
+        setCookie('_fbc', '', -1);
+      }
+      if (activeTracking.fbclid && isValidFbclid(activeTracking.fbclid)) {
+        var fbc = 'fb.1.' + Date.now() + '.' + activeTracking.fbclid;
+        setCookie('_fbc', fbc, 90);
+        activeTracking.fbc = fbc;
+      } else {
+        delete activeTracking.fbclid;
+        delete activeTracking.fbc;
+      }
+    }
+    activeTracking.fbp = fbp;
+
+    // 3. Injeta e atualiza links de checkout sem duplicar query params
+    function updateCheckoutUrl(rawHref) {
+      if (!rawHref || typeof rawHref !== "string") return rawHref;
+      try {
+        var trimmed = rawHref.trim();
+        if (trimmed.indexOf('#') === 0 || trimmed.indexOf('javascript:') === 0 || trimmed.indexOf('tel:') === 0 || trimmed.indexOf('mailto:') === 0) {
+          return rawHref;
+        }
+        var url = new URL(trimmed, window.location.origin);
+        Object.keys(activeTracking).forEach(function(k) {
+          if (activeTracking[k]) url.searchParams.set(k, activeTracking[k]);
+        });
+        if (!activeTracking.fbc && url.searchParams.has('fbc')) {
+          url.searchParams.delete('fbc');
+        }
+        if (!activeTracking.fbclid && url.searchParams.has('fbclid')) {
+          url.searchParams.delete('fbclid');
+        }
+        if (!url.searchParams.has('src')) {
+          var srcVal = activeTracking.src || activeTracking.utm_source || url.searchParams.get('utm_source');
+          if (srcVal) url.searchParams.set('src', srcVal);
+        }
+        if (!url.searchParams.has('sck')) {
+          var sckParts = [
+            activeTracking.utm_campaign || url.searchParams.get('utm_campaign'),
+            activeTracking.utm_medium || url.searchParams.get('utm_medium'),
+            activeTracking.utm_content || url.searchParams.get('utm_content')
+          ].filter(Boolean);
+          if (sckParts.length) url.searchParams.set('sck', sckParts.join('|'));
+        }
+        return url.toString();
+      } catch(e) {
+        return rawHref;
+      }
+    }
+
+    var checkoutDomains = [
+      'kiwify.com.br', 'pay.kiwify.com.br', 'lowify.com.br', 'pay.lowify.com.br',
+      'hotmart.com', 'pay.hotmart.com', 'braip.com', 'ev.braip.com',
+      'eduzz.com', 'sun.eduzz.com', 'monetizze.com.br', 'cakto.com.br',
+      'pay.cakto.com.br', 'yampi.com.br', 'greenn.com.br', 'kirvano.com',
+      'perfectpay.com.br', 'cartpanda.com', 'ticto.com.br', 'doppus.com',
+      'vega.com.br', 'tribopay.com.br', 'herospark.com', 'hub.la',
+      'lastlink.com', 'abmex.com.br', 'pepper.com.br', 'klinko.com'
+    ];
+
+    function isExcludedNonPurchase(href) {
+      if (!href || typeof href !== "string") return true;
+      var h = href.toLowerCase().trim();
+      if (h.indexOf('wa.me') !== -1 || h.indexOf('whatsapp.com') !== -1 || h.indexOf('whatsapp:') === 0 || h.indexOf('/go/') !== -1) return true;
+      if (h.indexOf('#') === 0 || h.indexOf('javascript:') === 0 || h.indexOf('tel:') === 0 || h.indexOf('mailto:') === 0) return true;
+      if (h.indexOf('instagram.com') !== -1 || h.indexOf('facebook.com') !== -1 || h.indexOf('youtube.com') !== -1 || h.indexOf('tiktok.com') !== -1 || h.indexOf('t.me') !== -1) return true;
+      if (h.indexOf('politica') !== -1 || h.indexOf('termos') !== -1 || h.indexOf('privacidade') !== -1 || h.indexOf('contato') !== -1) return true;
+      return false;
+    }
+
+    var checkoutUrl = "";
+    function isCheckoutUrl(rawHref) {
+      if (!rawHref) return false;
+      try {
+        var trimmed = rawHref.trim();
+        if (isExcludedNonPurchase(trimmed)) return false;
+        var parsed = new URL(trimmed, window.location.origin);
+        if (checkoutUrl && parsed.href.toLowerCase().indexOf(checkoutUrl.toLowerCase()) !== -1) return true;
+        if (parsed.origin === window.location.origin && !checkoutDomains.some(function(d){ return window.location.hostname.indexOf(d) !== -1; })) {
+          var p = parsed.pathname.toLowerCase();
+          if (p.indexOf('checkout') !== -1 || p.indexOf('comprar') !== -1 || p.indexOf('pagar') !== -1 || p.indexOf('pagamento') !== -1 || p.indexOf('order') !== -1) return true;
+          return false;
+        }
+        return checkoutDomains.some(function(d){ return parsed.hostname.indexOf(d) !== -1; });
+      } catch(e){ return false; }
+    }
+
+    // 4. Detecção de InitiateCheckout estritamente para botões de compra
+    var firedIc = false;
+    function triggerInitiateCheckout() {
+      if (firedIc) return;
+      firedIc = true;
+      try {
+        fbq('track', 'InitiateCheckout');
+      } catch(e){}
+    }
+
+    var buttonTexts = [];
+    var cssSelector = "";
+    var useKeywords = true;
+    var strictPurchasePhrases = [
+      'comprar agora', 'comprar', 'finalizar compra', 'finalizar pedido',
+      'adquirir agora', 'adquirir', 'garantir vaga', 'garantir minha vaga',
+      'garantir acesso', 'garantir agora', 'quero comprar', 'quero me inscrever',
+      'assinar agora', 'ir para o checkout', 'ir para checkout', 'efetuar pagamento',
+      'matricule-se', 'matricular agora'
+    ];
+
+    function matchesButton(el) {
+      if (!el) return false;
+      
+      var href = (el.getAttribute("href") || "").trim();
+      var text = (el.innerText || el.textContent || "").trim().toLowerCase();
+
+      if (isExcludedNonPurchase(href)) return false;
+      if (isCheckoutUrl(href)) return true;
+      if (el.classList && el.classList.contains("wt-checkout")) return true;
+
+      for (var i = 0; i < buttonTexts.length; i++) {
+        var targetText = (buttonTexts[i] || "").trim().toLowerCase();
+        if (targetText && text.indexOf(targetText) !== -1) return true;
+      }
+      if (buttonTexts.length > 0) return false;
+
+      if (useKeywords && (!("texto") || "texto" === "texto")) {
+        for (var j = 0; j < strictPurchasePhrases.length; j++) {
+          if (text.indexOf(strictPurchasePhrases[j]) !== -1) return true;
+        }
+      }
+      return false;
+    }
+
+    function injectCheckoutLinks() {
+      var links = document.querySelectorAll("a[href]");
+      links.forEach(function(link) {
+        var href = link.getAttribute("href");
+        if (!href || isExcludedNonPurchase(href)) return;
+        if (isCheckoutUrl(href) || link.classList.contains("wt-checkout") || matchesButton(link)) {
+          var updated = updateCheckoutUrl(href);
+          if (updated && updated !== href) {
+            link.setAttribute("href", updated);
+          }
+        }
+      });
+
+      var forms = document.querySelectorAll("form[action]");
+      forms.forEach(function(form) {
+        var action = form.getAttribute("action");
+        if (action && (isCheckoutUrl(action) || form.classList.contains("wt-checkout"))) {
+          Object.keys(activeTracking).forEach(function(k) {
+            if (activeTracking[k] && !form.querySelector('input[name="' + k + '"]')) {
+              var inp = document.createElement("input");
+              inp.type = "hidden";
+              inp.name = k;
+              inp.value = activeTracking[k];
+              form.appendChild(inp);
+            }
+          });
+        }
+      });
+    }
+
+    // Intercepta mousedown, pointerdown, touchstart e click para garantir injeção em botões dinâmicos (Elementor, Popups)
+    function handleInteraction(e) {
+      var target = e.target;
+      if (!target) return;
+      var btn = target.closest("button, a, [role='button'], input[type='submit']");
+      if (!btn) return;
+
+      // Dispara InitiateCheckout apenas no clique oficial de compra
+      if (e.type === "click" && matchesButton(btn)) {
+        triggerInitiateCheckout();
+      }
+
+      // Injeta/atualiza parâmetros no link antes da navegação do navegador
+      var aTag = target.closest("a[href]");
+      if (aTag) {
+        var href = aTag.getAttribute("href");
+        if (href && !isExcludedNonPurchase(href) && (isCheckoutUrl(href) || aTag.classList.contains("wt-checkout") || matchesButton(aTag))) {
+          var updated = updateCheckoutUrl(href);
+          if (updated && updated !== href) {
+            aTag.setAttribute("href", updated);
+          }
+        }
+      }
+
+      // Suporte para botões que usam data-href ou data-url
+      var dataHref = btn.getAttribute("data-href") || btn.getAttribute("data-url");
+      if (dataHref && !isExcludedNonPurchase(dataHref) && (isCheckoutUrl(dataHref) || matchesButton(btn))) {
+        var updatedData = updateCheckoutUrl(dataHref);
+        btn.setAttribute("data-href", updatedData);
+        btn.setAttribute("data-url", updatedData);
+      }
+    }
+
+    ["pointerdown", "mousedown", "click", "touchstart"].forEach(function(evt) {
+      document.addEventListener(evt, handleInteraction, true);
+    });
+
+    // Executa imediatamente e no carregamento
+    injectCheckoutLinks();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", injectCheckoutLinks);
+    }
+    window.addEventListener("load", injectCheckoutLinks);
+
+    // Intervalos de retentativa para botões com delay (ex: Vturb, timers de oferta)
+    [300, 800, 1500, 3000, 5000, 10000].forEach(function(ms) {
+      setTimeout(injectCheckoutLinks, ms);
+    });
+
+    // Observador de mutações no DOM para novos elementos inseridos dinamicamente
+    if (window.MutationObserver) {
+      var initObserver = function() {
+        if (document.body) {
+          var obs = new MutationObserver(function() { injectCheckoutLinks(); });
+          obs.observe(document.body, { childList: true, subtree: true });
+        }
+      };
+      if (document.body) {
+        initObserver();
+      } else {
+        document.addEventListener("DOMContentLoaded", initObserver);
+      }
+    }
+  })();
+  </script>
+
+  <!-- OTIMIZACOES DE PERFORMANCE E CONNECT RATE (PRECONNECT E PRELOAD) -->
+  <link rel="preconnect" href="https://i.ibb.co" crossorigin>
+  <link rel="dns-prefetch" href="https://i.ibb.co">
+  <link rel="preload" as="image" href="https://i.ibb.co/1fPdWm83/Mockup-do-Guia-Pr-tico-para-Calopsitas-1.png" fetchpriority="high">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-main: #FAF7F2;
+      --bg-card: #FFFFFF;
+      --bg-subtle: #F3EFE7;
+      --bg-pain: #EFE7DB;
+      --terracota: #B84A28;
+      --terracota-dark: #96381B;
+      --terracota-light: #FBF0EB;
+      --verde-salvia: #587D64;
+      --verde-salvia-dark: #3F5E49;
+      --verde-salvia-light: #EBF2ED;
+      --verde-salvia-border: #C8DCD0;
+      --text-main: #272422;
+      --text-muted: #67615D;
+      --border-subtle: #E8E2D8;
+      --border-accent: #DDD5C7;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-pill: 9999px;
+      --shadow-soft: 0 4px 18px rgba(45, 34, 25, 0.05);
+      --shadow-card: 0 6px 22px rgba(45, 34, 25, 0.08);
+      --shadow-cta: 0 4px 18px rgba(184, 74, 40, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-main);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg-main);
+      line-height: 1.5;
+      font-size: 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--bg-main);
+      position: relative;
+      padding-bottom: 24px;
+      overflow-x: hidden;
+    }
+
+    /* Tipografia e Títulos */
+    .kicker {
+      display: inline-block;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--verde-salvia-dark);
+      background-color: var(--verde-salvia-light);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+    }
+
+    .headline-main {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--terracota);
+      line-height: 1.25;
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    .subheadline {
+      font-size: 15.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .divider-line {
+      width: 54px;
+      height: 3px;
+      background-color: var(--verde-salvia);
+      border-radius: var(--radius-pill);
+      margin: 0 auto 20px;
+    }
+
+    .section-block {
+      padding: 32px 20px;
+      position: relative;
+    }
+
+    .section-block.alt-bg {
+      background-color: #F4EFE6;
+    }
+
+    .section-block.section-pain {
+      background-color: var(--bg-pain);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .pain-text-container {
+      max-width: 440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .pain-text-container p {
+      font-size: 15px;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--terracota);
+      line-height: 1.3;
+      margin-bottom: 10px;
+      text-align: center;
+      letter-spacing: -0.2px;
+    }
+
+    .section-desc {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 22px;
+      line-height: 1.45;
+    }
+
+    /* Botão CTA Padrão */
+    .btn-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 54px;
+      padding: 14px 20px;
+      background-color: var(--terracota);
+      color: #FFFFFF;
+      font-size: 16.5px;
+      font-weight: 800;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-cta);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-cta:active {
+      transform: scale(0.98);
+      background-color: var(--terracota-dark);
+    }
+
+    .btn-trust-text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* Listas e Bullets */
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      margin-bottom: 20px;
+    }
+
+    .bullet-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14.5px;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .bullet-icon {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: var(--verde-salvia-light);
+      color: var(--verde-salvia-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    /* Tag Imediatamente Acima do Vídeo 9:16 */
+    .video-above-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--terracota);
+      background: var(--terracota-light);
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    /* DOBRA 1: Imagem Principal Mockup */
+    .hero-mockup-wrapper {
+      width: 100%;
+      max-width: 320px;
+      margin: 4px auto 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hero-mockup-img {
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 10px 24px rgba(45, 34, 25, 0.12));
+    }
+
+    /* DOBRA 2: Carrosséis Contínuos Animados (12s por ciclo) */
+    .carousel-section-container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 6px 0;
+    }
+
+    .carousel-track-wrapper {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+    }
+
+    .carousel-track {
+      display: flex;
+      gap: 12px;
+      width: max-content;
+      will-change: transform;
+    }
+
+    .carousel-track.move-right {
+      animation: animRight 12s linear infinite;
+    }
+
+    .carousel-track.move-left {
+      animation: animLeft 12s linear infinite;
+    }
+
+    @keyframes animRight {
+      0% { transform: translate3d(-50%, 0, 0); }
+      100% { transform: translate3d(0%, 0, 0); }
+    }
+
+    @keyframes animLeft {
+      0% { transform: translate3d(0%, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+
+    /* Cards de Entregáveis em proporção original da folha (168px x 238px) */
+    .a4-sheet-card {
+      width: 168px;
+      height: 238px;
+      background: #FFFFFF;
+      border-radius: 12px;
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 4px 14px rgba(45, 35, 28, 0.08);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .a4-sheet-img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1055 / 1491;
+      object-fit: cover;
+      display: block;
+      border-radius: 11px;
+    }
+
+    /* Grids de Benefícios e Desejos */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .benefit-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(45, 35, 28, 0.04);
+    }
+
+    .benefit-emoji {
+      font-size: 24px;
+      flex-shrink: 0;
+      line-height: 1;
+      padding: 8px;
+      background: var(--terracota-light);
+      border-radius: 12px;
+    }
+
+    .benefit-content h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--terracota);
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+
+    .benefit-content p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* DOBRA 4: Card Tudo O Que Você Vai Receber */
+    .main-bundle-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--verde-salvia);
+      padding: 26px 18px 20px;
+      box-shadow: 0 6px 24px rgba(88, 125, 100, 0.12);
+      position: relative;
+    }
+
+    .badge-float {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--verde-salvia);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 5px 18px;
+      border-radius: var(--radius-pill);
+      box-shadow: 0 4px 10px rgba(88, 125, 100, 0.3);
+      white-space: nowrap;
+    }
+
+    /* Mockup Oficial do Produto Principal (1080x1080 / 1254x1254 - 1:1) */
+    .product-mockup-wrapper {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1 / 1;
+      margin: 12px auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .product-mockup-img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 8px 24px rgba(45, 34, 25, 0.12));
+    }
+
+    .grid-confirmation {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .grid-confirm-item {
+      background: var(--bg-main);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    /* SEÇÃO DEPOIMENTOS */
+    .reviews-summary-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      padding: 6px 16px;
+      border-radius: var(--radius-pill);
+      margin: 0 auto 20px;
+      box-shadow: 0 2px 8px rgba(45, 35, 28, 0.04);
+    }
+
+    .stars-gold {
+      color: #FFB800;
+      font-size: 16px;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .rating-score {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .rating-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--verde-salvia-dark);
+    }
+
+    .testimonial-card-item {
+      width: 250px;
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 4px 14px rgba(45, 35, 28, 0.06);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .testimonial-top-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .testimonial-photo-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--bg-subtle);
+      border: 2px solid var(--verde-salvia);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .testimonial-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .testimonial-user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .testimonial-author-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--terracota);
+      line-height: 1.25;
+    }
+
+    .testimonial-stars {
+      color: #FFB800;
+      font-size: 13px;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .testimonial-quote-box {
+      background: #FAF7F2;
+      border-radius: 8px;
+      padding: 12px;
+      border-left: 3px solid var(--terracota);
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* DOBRA 6: Oferta Única */
+    .offer-anchor-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      border: 3px solid var(--terracota);
+      padding: 26px 20px;
+      box-shadow: 0 10px 32px rgba(184, 74, 40, 0.16);
+      text-align: center;
+      position: relative;
+    }
+
+    .offer-top-badge {
+      display: inline-block;
+      background: var(--terracota-light);
+      color: var(--terracota);
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .offer-product-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .offer-product-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+
+    .price-box-clean {
+      background: var(--bg-main);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 18px 0;
+      border: 1px dashed var(--border-accent);
+    }
+
+    .price-label-simple {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .price-value-highlight {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--terracota);
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .price-value-highlight span.currency {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .price-desc-note {
+      font-size: 12px;
+      color: var(--verde-salvia-dark);
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    /* DOBRA 7: Garantia */
+    .guarantee-wrapper {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .guarantee-seal-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 12px;
+    }
+
+    /* DOBRA 8: FAQ Acordeão */
+    .faq-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(45, 35, 28, 0.04);
+      transition: border-color 0.2s ease;
+    }
+
+    .faq-item[open] {
+      border-color: var(--verde-salvia);
+    }
+
+    .faq-question {
+      padding: 16px 18px;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-question::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-chevron {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+      color: var(--terracota);
+    }
+
+    .faq-item[open] .faq-chevron {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 18px 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      border-top: 1px solid #F5F0E8;
+      padding-top: 12px;
+    }
+
+    /* DOBRA 9: Rodapé */
+    .footer-block {
+      padding: 30px 20px;
+      background-color: #EFE9DE;
+      border-top: 1px solid var(--border-accent);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      line-height: 1.45;
+    }
+
+    .footer-highlight-note {
+      background: rgba(255, 255, 255, 0.65);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* =========================================================
+       POPUP DE UPGRADE PREMIUM (MODAL 100% VISÍVEL SEM SCROLL)
+       ========================================================= */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 999999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    .popup-overlay.active {
+      display: flex;
+    }
+
+    .popup-modal-card {
+      width: calc(100% - 24px);
+      max-width: 400px;
+      max-height: 94dvh;
+      max-height: 94vh;
+      background-color: #FAF7F2;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-accent);
+      padding: 14px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      overflow: hidden; /* SEM OVERFLOW E SEM BARRA DE ROLAGEM */
+      margin: auto;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      border-radius: 50%;
+      background: #ECE5DA;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--text-main);
+      cursor: pointer;
+      z-index: 10;
+      line-height: 1;
+    }
+
+    .modal-kicker {
+      align-self: flex-start;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--terracota);
+      background: var(--terracota-light);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      margin: 0;
+      padding-right: 32px;
+    }
+
+    /* GRADE 2X2 COM CARDS PEQUENOS E IGUAIS */
+    .modal-grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .modal-grid-item {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 6px;
+      box-sizing: border-box;
+    }
+
+    .modal-item-mockup {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .modal-thumb-img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+    }
+
+    .modal-item-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 30px;
+    }
+
+    /* LINHA DE PREÇO CENTRALIZADA */
+    .modal-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.3;
+      text-align: center;
+      margin: 2px 0;
+      flex-wrap: wrap;
+    }
+
+    .modal-price-row .price-separator {
+      color: var(--border-accent);
+      font-weight: 400;
+    }
+
+    .modal-price-row .price-highlight {
+      color: var(--terracota);
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    /* BOTÃO PRINCIPAL (50PX, TERRACOTA) COM EFEITO DE PULSO E RAIO DE LUZ */
+    .btn-modal-premium {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 50px;
+      min-height: 50px;
+      padding: 6px 12px;
+      background-color: var(--terracota);
+      color: #FFFFFF;
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(184, 74, 40, 0.28);
+      transition: background-color 0.15s ease, transform 0.15s ease;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      animation: buttonPulse 2.2s infinite ease-in-out;
+    }
+
+    .btn-modal-premium::after {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -90%;
+      width: 60%;
+      height: 220%;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.25) 25%,
+        rgba(255, 255, 255, 0.85) 50%,
+        rgba(255, 255, 255, 0.25) 75%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(25deg);
+      pointer-events: none;
+      z-index: 1;
+      animation: lightSweep 2.2s infinite ease-in-out;
+    }
+
+    .btn-modal-premium:active {
+      background-color: var(--terracota-dark);
+      transform: scale(0.98);
+    }
+
+    .btn-modal-premium .btn-primary-text {
+      position: relative;
+      z-index: 2;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
+    }
+
+    .btn-modal-premium .btn-sub-text {
+      position: relative;
+      z-index: 2;
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.92;
+      margin-top: 2px;
+      line-height: 1.1;
+    }
+
+    @keyframes buttonPulse {
+      0%, 100% {
+        box-shadow: 0 4px 14px rgba(184, 74, 40, 0.35);
+        filter: brightness(1);
+        transform: scale(1);
+      }
+      25% {
+        box-shadow: 0 0 22px rgba(224, 85, 45, 0.85), 0 0 36px rgba(255, 120, 70, 0.5);
+        filter: brightness(1.1);
+        transform: scale(1.02);
+      }
+      45% {
+        box-shadow: 0 4px 14px rgba(184, 74, 40, 0.35);
+        filter: brightness(1);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes lightSweep {
+      0% {
+        left: -90%;
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      35% {
+        left: 150%;
+        opacity: 1;
+      }
+      40% {
+        opacity: 0;
+      }
+      100% {
+        left: 150%;
+        opacity: 0;
+      }
+    }
+
+    /* BOTÃO SECUNDÁRIO (42PX, CONTORNO DISCRETO) */
+    .btn-modal-normal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 42px;
+      min-height: 42px;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: background 0.15s ease;
+    }
+
+    .btn-modal-normal:active {
+      background: #EFE9DF;
+      color: var(--text-main);
+    }
+
+    /* TELAS BAIXAS (< 700PX DE ALTURA) */
+    @media (max-height: 700px) {
+      .popup-modal-card {
+        padding: 10px;
+        gap: 6px;
+      }
+      .modal-title {
+        font-size: 17px;
+      }
+      .modal-grid-2x2 {
+        gap: 6px;
+      }
+      .modal-grid-item {
+        padding: 6px 4px;
+        gap: 4px;
+      }
+      .modal-item-mockup {
+        width: 44px;
+        height: 44px;
+        font-size: 8px;
+      }
+      .modal-item-label {
+        font-size: 11px;
+      }
+      .modal-price-row {
+        font-size: 12px;
+      }
+      .modal-price-row .price-highlight {
+        font-size: 19px;
+      }
+      .btn-modal-premium {
+        height: 46px;
+        min-height: 46px;
+        padding: 4px 10px;
+      }
+      .btn-modal-premium .btn-primary-text {
+        font-size: 13.5px;
+      }
+      .btn-modal-normal {
+        height: 40px;
+        min-height: 40px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- DOBRA 1: PROMESSA -->
+    <header class="section-block" style="text-align: center; padding-top: 24px;">
+      <span class="kicker">ACABOU DE CHEGAR EM CASA? COMECE POR AQUI</span>
+      
+      <h1 class="headline-main">
+        O Guia das Primeiras 48 Horas com a Sua Calopsita
+      </h1>
+
+      <p class="subheadline">
+        "Ganhei hoje, tô feliz e ao mesmo tempo perdida." O passo a passo do que fazer agora, sem desespero e sem chute.
+      </p>
+
+      <div class="divider-line"></div>
+
+      <!-- IMAGEM PRINCIPAL DOBRA 1 (Mockup Oficial em proporção 1:1 original) -->
+      <div class="hero-mockup-wrapper">
+        <img 
+          src="https://i.ibb.co/1fPdWm83/Mockup-do-Guia-Pr-tico-para-Calopsitas-1.png" 
+          alt="Guia das Primeiras 48 Horas com a Sua Calopsita" 
+          class="hero-mockup-img"
+          width="320" 
+          height="320"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        >
+      </div>
+
+      <!-- BULLETS BREVES DE APOIO (Somente Produto Principal) -->
+      <ul class="bullet-list" style="text-align: left;">
+        <li class="bullet-item">
+          <span class="bullet-icon">✓</span>
+          <span><strong>Passo a passo organizado:</strong> saiba o que fazer nas primeiras 2 horas, nas primeiras 24 horas e até completar 48 horas.</span>
+        </li>
+        <li class="bullet-item">
+          <span class="bullet-icon">✓</span>
+          <span><strong>Aproximação com calma:</strong> como chegar perto do jeito certo sem forçar a mão e sem assustar a ave.</span>
+        </li>
+        <li class="bullet-item">
+          <span class="bullet-icon">✓</span>
+          <span><strong>Segurança imediata:</strong> checklist do que conferir na gaiola e na casa logo no primeiro dia.</span>
+        </li>
+      </ul>
+
+      <!-- BOTÃO DE COMPRA DOBRA 1 (Navegação para a Dobra 6) -->
+      <a href="#oferta" class="btn-cta">
+        QUERO VER O GUIA COMPLETO
+      </a>
+
+      <div class="btn-trust-text">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Acesso imediato no celular, tablet ou computador</span>
+      </div>
+    </header>
+
+
+    <!-- NOVA SEÇÃO: IDENTIFICAÇÃO COM A DOR -->
+    <section class="section-block section-pain">
+      <h2 class="section-title">Você imaginou o primeiro dia diferente, né?</h2>
+      
+      <div class="pain-text-container">
+        <p>Na sua cabeça, ela ia comer na sua mão e virar sua melhor amiga no primeiro dia.</p>
+        <p>Aí a caixa entra em casa, ela vai para o fundo da gaiola, bufa quando você chega perto ou nem se mexe.</p>
+        <p>E você fica sem saber se troca a comida, se deixa quieta, se tenta pegar ou se tem alguma coisa errada.</p>
+        <p>Isso é muito mais comum do que parece. O primeiro dia não precisa ser um teste de amansar. Precisa de uma ordem clara do que fazer.</p>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 2: TEMAS / CONDIÇÕES COBERTAS -->
+    <section class="section-block alt-bg">
+      <h2 class="section-title">O que você vai encontrar</h2>
+      
+      <p class="section-desc">
+        Um material digital direto ao ponto em formato de guia, com letras grandes e leitura rápida. Feito sob medida para quem acabou de ganhar ou comprar uma calopsita e precisa saber exatamente por onde começar.
+      </p>
+
+      <!-- CARROSSÉIS CONTÍNUOS DE 12 SEGUNDOS POR CICLO (LARGURA TRAVADA EM 480PX) -->
+      <div class="carousel-section-container">
+        
+        <!-- Carrossel 1: Movimento contínuo para a direita (12s) -->
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track move-right">
+            <!-- 3 Entregáveis Originais -->
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/xtfswdGZ/Guia-das-Primeiras-48-Horas-com-sua-Calopsita.png" 
+                alt="Guia das Primeiras 48 Horas com sua Calopsita" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/XrswkgZt/Guia-pr-tico-da-alimenta-o-da-calopsita.png" 
+                alt="Guia prático da alimentação da calopsita" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/ycYFjt3G/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-32.png" 
+                alt="Página de rotina e adaptação da ave" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <!-- 3 Entregáveis Duplicados para Loop Contínuo Impecável -->
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/xtfswdGZ/Guia-das-Primeiras-48-Horas-com-sua-Calopsita.png" 
+                alt="Guia das Primeiras 48 Horas com sua Calopsita" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/XrswkgZt/Guia-pr-tico-da-alimenta-o-da-calopsita.png" 
+                alt="Guia prático da alimentação da calopsita" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/ycYFjt3G/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-32.png" 
+                alt="Página de rotina e adaptação da ave" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Carrossel 2: Movimento contínuo para a esquerda (12s) -->
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track move-left">
+            <!-- 3 Entregáveis Originais sem repetir os do Carrossel 1 -->
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/s9Y5wG8q/Guia-pr-tico-para-sair-com-seguran-a.png" 
+                alt="Guia prático para sair com segurança" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/XrKwy670/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-26.png" 
+                alt="Orientações e manejo tranquilo para a ave" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/Mzj3cd2/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-38.png" 
+                alt="Checklists práticos e rotina das primeiras horas" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <!-- 3 Entregáveis Duplicados para Loop Contínuo Impecável -->
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/s9Y5wG8q/Guia-pr-tico-para-sair-com-seguran-a.png" 
+                alt="Guia prático para sair com segurança" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/XrKwy670/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-26.png" 
+                alt="Orientações e manejo tranquilo para a ave" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+
+            <div class="a4-sheet-card">
+              <img 
+                src="https://i.ibb.co/Mzj3cd2/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-38.png" 
+                alt="Checklists práticos e rotina das primeiras horas" 
+                class="a4-sheet-img" 
+                width="168" 
+                height="238" 
+                loading="lazy" 
+                decoding="async"
+              >
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- DOBRA 3: POR QUE É VALIOSO -->
+    <section class="section-block">
+      <h2 class="section-title">Por que este guia faz toda a diferença agora</h2>
+      <p class="section-desc">
+        Informações organizadas para evitar erros comuns que deixam a ave assustada e o novo tutor angustiado.
+      </p>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-emoji">🧭</div>
+          <div class="benefit-content">
+            <h3>Ordem cronológica clara</h3>
+            <p>Você sabe exatamente o que fazer nas primeiras 2h, 24h e 48h sem ter que adivinhar nada.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🛡️</div>
+          <div class="benefit-content">
+            <h3>Ambiente seguro e protegido</h3>
+            <p>Descubra os pontos críticos da casa com portas, janelas e outros animais domésticos.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🤝</div>
+          <div class="benefit-content">
+            <h3>Aproximação sem traumas</h3>
+            <p>Aprenda a interagir com calma e sem transformar o primeiro dia em teste de amansar à força.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🩹</div>
+          <div class="benefit-content">
+            <h3>Ações para bufadas e bicadas</h3>
+            <p>Saiba o que fazer com paciência se ela bicar, bufar ou se debater na gaiola.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🥣</div>
+          <div class="benefit-content">
+            <h3>Atenção à alimentação inicial</h3>
+            <p>Entenda o comportamento natural das primeiras horas caso ela ainda não tenha tocado na comida.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">📋</div>
+          <div class="benefit-content">
+            <h3>Folha prática para imprimir</h3>
+            <p>Tenha uma rotina visual para afixar perto da gaiola e acompanhar os horários com facilidade.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 4: CARD TUDO O QUE VOCÊ VAI RECEBER -->
+    <section class="section-block alt-bg">
+      <div class="main-bundle-card">
+        <span class="badge-float">ACESSO IMEDIATO</span>
+
+        <h2 class="section-title" style="margin-top: 8px;">Tudo o que você vai receber</h2>
+        
+        <p class="section-desc" style="margin-bottom: 12px;">
+          O kit completo em formato digital para consultar na mesma hora no seu celular.
+        </p>
+
+        <!-- IMAGEM DO PRODUTO PRINCIPAL DOBRA 4 (Proporção 1:1 original) -->
+        <div class="product-mockup-wrapper" style="max-width: 280px; margin: 12px auto 20px;">
+          <img 
+            src="https://i.ibb.co/zWv65JMp/Guia-das-Primeiras-48-Horas-da-Calopsita.png" 
+            alt="Guia das Primeiras 48 Horas da Calopsita" 
+            class="product-mockup-img"
+            width="280" 
+            height="280" 
+            loading="lazy" 
+            decoding="async"
+          >
+        </div>
+
+        <!-- Bullets dos itens principais do produto principal -->
+        <ul class="bullet-list" style="margin-bottom: 18px;">
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Guia completo com tipografia grande para leitura fácil no celular</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Checklist do que ter na gaiola e na casa logo no primeiro dia de chegada</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Roteiro detalhado das primeiras 2 horas, das primeiras 24 horas e até 48 horas</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Orientações de aproximação respeitosa sem forçar o contato e sem assustar a ave</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Instruções práticas sobre o que fazer caso ela bufe, tente bicar ou se debata</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Folha de rotina das 48 horas pronta para imprimir e acompanhar em casa</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Lista de verificação com sinais claros para procurar um veterinário de aves</span>
+          </li>
+        </ul>
+
+        <!-- GRID DE CONFIRMAÇÃO COM EMOJI: 6 temas cobertos -->
+        <div class="grid-confirmation">
+          <div class="grid-confirm-item">
+            <span>🏠</span>
+            <span>Posicionamento de gaiola</span>
+          </div>
+          <div class="grid-confirm-item">
+            <span>🚪</span>
+            <span>Janelas e portas seguras</span>
+          </div>
+          <div class="grid-confirm-item">
+            <span>🥣</span>
+            <span>Primeiras refeições e água</span>
+          </div>
+          <div class="grid-confirm-item">
+            <span>🤲</span>
+            <span>Aproximação sem forçar</span>
+          </div>
+          <div class="grid-confirm-item">
+            <span>😴</span>
+            <span>Descanso e silêncio noturno</span>
+          </div>
+          <div class="grid-confirm-item">
+            <span>🩺</span>
+            <span>Quando procurar o veterinário</span>
+          </div>
+        </div>
+
+        <!-- BOTÃO DE COMPRA DOBRA 4 (Navegação para a Dobra 6) -->
+        <a href="#oferta" class="btn-cta">
+          QUERO GARANTIR MEU ACESSO
+        </a>
+
+        <div class="btn-trust-text">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+          <span>Receba os arquivos diretamente no seu e-mail</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 5: IDEAL PARA VOCÊ QUE DESEJA -->
+    <section class="section-block">
+      <h2 class="section-title">Ideal para você que deseja</h2>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-emoji">🕊️</div>
+          <div class="benefit-content">
+            <h3>Clareza desde a chegada</h3>
+            <p>Ter certeza de como agir sem depender de palpites confusos e contraditórios.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">⏱️</div>
+          <div class="benefit-content">
+            <h3>Respeito ao ritmo da ave</h3>
+            <p>Entender que os primeiros dias servem para adaptação tranquila e acolhimento.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">💖</div>
+          <div class="benefit-content">
+            <h3>Construir uma relação de carinho</h3>
+            <p>Evitar sustos e bicadas aprendendo a se comunicar de forma gentil e paciente.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🌿</div>
+          <div class="benefit-content">
+            <h3>Proteger a casa contra acidentes</h3>
+            <p>Reconhecer perigos invisíveis como correntes de ar, janelas abertas e outros animais domésticos.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">📝</div>
+          <div class="benefit-content">
+            <h3>Seguir uma rotina visual</h3>
+            <p>Ter uma folha prática impressa perto da gaiola para guiar seus passos com segurança.</p>
+          </div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-emoji">🩺</div>
+          <div class="benefit-content">
+            <h3>Saber quando buscar ajuda profissional</h3>
+            <p>Diferenciar a timidez comum da chegada de sinais reais que exigem atenção veterinária.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- NOVA SEÇÃO: DEPOIMENTOS (POSICIONADA IMEDIATAMENTE ANTES DA DOBRA 6) -->
+    <section class="section-block alt-bg" style="text-align: center;">
+      <h2 class="section-title">O que dizem as tutoras que usaram o guia</h2>
+      <p class="section-desc" style="margin-bottom: 14px;">Experiências reais de quem começou do jeito certo.</p>
+
+      <!-- Resumo de Avaliações estilo Mercado Livre e Shopee -->
+      <div class="reviews-summary-badge">
+        <span class="stars-gold">★★★★★</span>
+        <span class="rating-score">5.0</span>
+        <span class="rating-count">Avaliações verificadas</span>
+      </div>
+
+      <!-- CARROSSEL CONTÍNUO DE DEPOIMENTOS (12s por ciclo, largura 480px) -->
+      <div class="carousel-section-container">
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track move-left">
+            <!-- 4 Cards de Depoimento Reais com Estrelas -->
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/5hJ4GDHK/Imagem-do-Chat-GPT-31-de-out-de-2026-15-06-22-3.png" alt="Mariana Oliveira" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Mariana Oliveira</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Ela chegou e eu não via ela comer nada. Fiquei super preocupada. O guia me ajudou a entender o que observar e quando procurar ajuda.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/gFZyj8tQ/mulher-tutora-calopsita-referencia-2-300x300.jpg" alt="Juliana Martins" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Juliana Martins</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">A minha bufava toda vez que eu chegava perto. Eu tinha até medo de trocar a comida kkk. Gostei porque explica tudo de um jeito simples, sem complicação.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/Fqh23575/Selfie-com-Tr-s-Calopsitas.png" alt="Camila Ferreira" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Camila Ferreira</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Achei que ela ia ser mansinha logo de cara, mas só fugia de mim 😅 Depois que li o guia, entendi que precisava dar um tempinho pra ela.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/21zxs3Fq/Selfie-Afetuosa-com-Calopsita-Amarela.png" alt="Fernanda Rodrigues" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Fernanda Rodrigues</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Ganhei minha calopsita e fiquei perdida, sem saber nem por onde começar kkk. O guia me ajudou muito a organizar o que fazer no primeiro dia.</div>
+            </div>
+
+            <!-- 4 Duplicatas para Loop Contínuo Impecável -->
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/5hJ4GDHK/Imagem-do-Chat-GPT-31-de-out-de-2026-15-06-22-3.png" alt="Mariana Oliveira" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Mariana Oliveira</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Ela chegou e eu não via ela comer nada. Fiquei super preocupada. O guia me ajudou a entender o que observar e quando procurar ajuda.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/gFZyj8tQ/mulher-tutora-calopsita-referencia-2-300x300.jpg" alt="Juliana Martins" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Juliana Martins</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">A minha bufava toda vez que eu chegava perto. Eu tinha até medo de trocar a comida kkk. Gostei porque explica tudo de um jeito simples, sem complicação.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/Fqh23575/Selfie-com-Tr-s-Calopsitas.png" alt="Camila Ferreira" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Camila Ferreira</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Achei que ela ia ser mansinha logo de cara, mas só fugia de mim 😅 Depois que li o guia, entendi que precisava dar um tempinho pra ela.</div>
+            </div>
+
+            <div class="testimonial-card-item">
+              <div class="testimonial-top-row">
+                <div class="testimonial-photo-circle">
+                  <img src="https://i.ibb.co/21zxs3Fq/Selfie-Afetuosa-com-Calopsita-Amarela.png" alt="Fernanda Rodrigues" class="testimonial-img" loading="lazy">
+                </div>
+                <div class="testimonial-user-info">
+                  <div class="testimonial-author-name">Fernanda Rodrigues</div>
+                  <div class="testimonial-stars">★★★★★</div>
+                </div>
+              </div>
+              <div class="testimonial-quote-box">Ganhei minha calopsita e fiquei perdida, sem saber nem por onde começar kkk. O guia me ajudou muito a organizar o que fazer no primeiro dia.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÃO ABAIXO DO CARROSSEL: ROLAGEM SUAVE ATÉ #oferta -->
+      <a href="#oferta" class="btn-cta" style="margin-top: 18px;">
+        QUERO COMEÇAR AGORA
+      </a>
+    </section>
+
+
+    <!-- DOBRA 6: OFERTA ÚNICA (ÂNCORA COMERCIAL) -->
+    <section class="section-block" id="oferta">
+      <h2 class="section-title">Comece do jeito certo desde o primeiro minuto</h2>
+      <p class="section-desc">
+        Acesso imediato ao guia completo para consultar no celular agora mesmo.
+      </p>
+
+      <div class="offer-anchor-card">
+        <span class="offer-top-badge">OFERTA PRINCIPAL</span>
+
+        <h3 class="offer-product-name">As Primeiras 48 Horas com a Sua Calopsita</h3>
+        
+        <p class="offer-product-sub">
+          O guia de bolso com o roteiro das primeiras horas, listas de segurança e adaptação inicial.
+        </p>
+
+        <!-- IMAGEM DO CARD DE OFERTA DOBRA 6 (Proporção 1:1 original) -->
+        <div class="product-mockup-wrapper" style="max-width: 240px; margin: 8px auto 16px;">
+          <img 
+            src="https://i.ibb.co/21tVytFF/Mockup-3-D-do-Guia-Pr-tico-da-Calopsita-2.png" 
+            alt="Mockup do Guia Prático da Calopsita" 
+            class="product-mockup-img"
+            width="240" 
+            height="240" 
+            loading="lazy" 
+            decoding="async"
+          >
+        </div>
+
+        <!-- Bullets com ícone check (somente itens principais) -->
+        <ul class="bullet-list" style="text-align: left; margin: 16px 0;">
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Guia completo com letras grandes e leitura fácil</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Roteiro prático das primeiras 2 horas, 24 horas e 48 horas</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Checklist de segurança para gaiola, portas e janelas</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Como chegar perto com calma sem forçar o contato</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Folha de rotina pronta para imprimir</span>
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-icon">✓</span>
+            <span>Lista de sinais para acionar um veterinário de aves</span>
+          </li>
+        </ul>
+
+        <!-- Preço fixo comercial R$ 10,00 em destaque comercial absoluto -->
+        <div class="price-box-clean">
+          <div class="price-label-simple">Valor de acesso único:</div>
+          <div class="price-value-highlight">
+            <span class="currency">R$</span> 10,00
+          </div>
+          <div class="price-desc-note">Pagamento único sem mensalidades</div>
+        </div>
+
+        <!-- BOTÃO DO CARD DE OFERTA: Único botão que abre o POPUP DE UPGRADE PREMIUM -->
+        <button type="button" class="btn-cta" id="btnOpenModalOffer" onclick="openPremiumPopup()">
+          QUERO ACESSAR AGORA
+        </button>
+
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 14px; line-height: 1.4;">
+          Acesso liberado imediatamente no seu e-mail logo após a confirmação.
+        </p>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 7: GARANTIA -->
+    <section class="section-block alt-bg">
+      <div class="guarantee-wrapper">
+        <div class="guarantee-seal-icon">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="#EBF2ED" stroke="#587D64" stroke-width="3"/>
+            <circle cx="50" cy="50" r="38" fill="#FFFFFF" stroke="#C8DCD0" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="50" y="44" font-family="Plus Jakarta Sans, sans-serif" font-size="22" font-weight="800" fill="#B84A28" text-anchor="middle">7</text>
+            <text x="50" y="58" font-family="Plus Jakarta Sans, sans-serif" font-size="11" font-weight="800" fill="#3F5E49" text-anchor="middle">DIAS</text>
+            <text x="50" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="8" font-weight="700" fill="#67615D" text-anchor="middle">GARANTIA</text>
+          </svg>
+        </div>
+
+        <h2 class="section-title">Garantia de 7 dias, sem burocracia</h2>
+        
+        <p style="font-size: 14.5px; color: var(--text-muted); line-height: 1.5; margin-top: 10px;">
+          Você tem 7 dias para ler o guia com calma. Se por qualquer motivo ele não for o que você esperava, é só pedir o reembolso e você recebe 100% do valor de volta. Sem perguntas e sem complicação.
+        </p>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 8: FAQ (PERGUNTAS FREQUENTES EM ACORDEÃO) -->
+    <section class="section-block">
+      <h2 class="section-title">Perguntas frequentes</h2>
+      <p class="section-desc">Tire suas dúvidas antes de começar a leitura.</p>
+
+      <div class="faq-container">
+        <!-- Pergunta 1 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>Serve para quem ganhou ou comprou a calopsita hoje?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            Sim. O conteúdo foi estruturado exatamente para esse momento inicial. Ele orienta o que fazer logo na chegada, nas primeiras duas horas e ao longo dos dois primeiros dias, sem você precisar adivinhar nada.
+          </div>
+        </details>
+
+        <!-- Pergunta 2 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>E se ela não gostar de mim no primeiro dia?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            Não se sinta culpada. As calopsitas são presas na natureza e precisam de tempo para entender que o novo ambiente é seguro. O guia mostra como respeitar esse tempo sem transformar o primeiro dia em um teste estressante de amansar à força.
+          </div>
+        </details>
+
+        <!-- Pergunta 3 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>E se ela bicar ou bufar quando eu chegar perto?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            O material ensina como se aproximar sem invadir o espaço dela. Forçar a mão nos primeiros momentos é a principal causa de sustos e bicadas. Você vai aprender a construir segurança mútua com tranquilidade.
+          </div>
+        </details>
+
+        <!-- Pergunta 4 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>E se ela ainda não comeu?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            É comum que uma ave recém chegada fique tímida e não se alimente na frente de pessoas desconhecidas nas primeiras horas. O guia traz um roteiro visual para posicionar a comida de forma acessível e o que acompanhar com atenção.
+          </div>
+        </details>
+
+        <!-- Pergunta 5 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>Por que pagar se tem vídeo de graça no YouTube?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            Na internet cada pessoa dá uma opinião diferente e muitos sugerem técnicas que assustam a ave. No primeiro dia você não quer passar horas assistindo dezenas de vídeos contraditórios, você precisa de uma ordem prática e segura do que fazer agora.
+          </div>
+        </details>
+
+        <!-- Pergunta 6 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>Como eu recebo o guia?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            O acesso é digital. Assim que o pagamento for aprovado, você recebe um e-mail com os links para acessar o guia e os checklists imprimíveis, abrindo na hora no seu celular, tablet ou computador.
+          </div>
+        </details>
+
+        <!-- Pergunta 7 -->
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>O guia substitui o veterinário?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="faq-answer">
+            Não. Este material é estritamente educativo sobre rotina, manejo e adaptação doméstica. Caso você perceba prostração intensa, sinais de dor ou qualquer sintoma fora da adaptação comum, a orientação expressa do guia é sempre procurar um médico veterinário especializado em aves.
+          </div>
+        </details>
+      </div>
+    </section>
+
+
+    <!-- DOBRA 9: RODAPÉ -->
+    <footer class="footer-block">
+      <div class="footer-highlight-note">
+        Material educativo de rotina. Não substitui a avaliação de um veterinário de aves.
+      </div>
+
+      <p>© 2026 As Primeiras 48 Horas com a Sua Calopsita. Todos os direitos reservados.</p>
+      
+      <p style="font-size: 11px; color: #7A746E;">
+        Este site não é afiliado, patrocinado ou administrado pelo Facebook, Instagram, Google ou Meta Inc. Todas as informações são de caráter exclusivamente informativo e educativo.
+      </p>
+
+      <p style="font-size: 11px; color: #7A746E;">
+        Aviso de direitos autorais: é expressamente proibida a cópia, reprodução, distribuição ou comercialização não autorizada deste material digital sob as penalidades legais vigentes.
+      </p>
+    </footer>
+
+  </div>
+
+
+  <!-- POPUP DE UPGRADE PREMIUM (MODAL ACIONADO EXCLUSIVAMENTE NA DOBRA 6) -->
+  <div class="popup-overlay" id="premiumPopupOverlay" onclick="handleBackdropClick(event)">
+    <div class="popup-modal-card" id="premiumModalSheet">
+      <button type="button" class="modal-close-btn" onclick="closePremiumPopup()" aria-label="Fechar janela">&times;</button>
+      
+      <span class="modal-kicker">OFERTA ESPECIAL</span>
+      <h3 class="modal-title">Leve o Pacote Completo por só R$ 9,99 a mais</h3>
+      
+      <!-- OS 4 ITENS EM GRADE 2X2 -->
+      <div class="modal-grid-2x2">
+        <div class="modal-grid-item">
+          <div class="modal-item-mockup">
+            <img 
+              src="https://i.ibb.co/21tVytFF/Mockup-3-D-do-Guia-Pr-tico-da-Calopsita-2.png" 
+              alt="Guia das Primeiras 48 Horas" 
+              class="modal-thumb-img" 
+              width="56" 
+              height="56" 
+              loading="lazy" 
+              decoding="async"
+            >
+          </div>
+          <div class="modal-item-label">Guia das Primeiras 48 Horas</div>
+        </div>
+        <div class="modal-grid-item">
+          <div class="modal-item-mockup">
+            <img 
+              src="https://i.ibb.co/SXBL2zt9/Guia-Alimentar-da-Calopsita-em-3-D-3.png" 
+              alt="Guia Alimentar" 
+              class="modal-thumb-img" 
+              width="56" 
+              height="56" 
+              loading="lazy" 
+              decoding="async"
+            >
+          </div>
+          <div class="modal-item-label">Guia Alimentar</div>
+        </div>
+        <div class="modal-grid-item">
+          <div class="modal-item-mockup">
+            <img 
+              src="https://i.ibb.co/WWc4Sk1x/Guia-de-Confian-a-para-Calopsitas-4.png" 
+              alt="Guia de Confiança" 
+              class="modal-thumb-img" 
+              width="56" 
+              height="56" 
+              loading="lazy" 
+              decoding="async"
+            >
+          </div>
+          <div class="modal-item-label">Guia de Confiança</div>
+        </div>
+        <div class="modal-grid-item">
+          <div class="modal-item-mockup">
+            <img 
+              src="https://i.ibb.co/hF5wTbVc/Mockup-do-Guia-Casa-Segura-para-Calopsitas-5.png" 
+              alt="Manual Casa Segura" 
+              class="modal-thumb-img" 
+              width="56" 
+              height="56" 
+              loading="lazy" 
+              decoding="async"
+            >
+          </div>
+          <div class="modal-item-label">Manual Casa Segura</div>
+        </div>
+      </div>
+
+      <!-- LINHA DE PREÇO CENTRALIZADA -->
+      <div class="modal-price-row">
+        <span>Só o guia: R$ 10,00</span>
+        <span class="price-separator">|</span>
+        <span>Pacote completo: <strong class="price-highlight">R$ 19,99</strong></span>
+      </div>
+
+      <!-- BOTÃO PRINCIPAL: PACOTE COMPLETO -->
+      <a href="[LINK DO CHECKOUT PREMIUM]" class="btn-modal-premium">
+        <span class="btn-primary-text">QUERO O PACOTE COMPLETO POR R$ 19,99</span>
+        <span class="btn-sub-text">Guia + 3 produtos adicionais</span>
+      </a>
+
+      <!-- BOTÃO SECUNDÁRIO: CONTINUAR SÓ COM O GUIA -->
+      <a href="[LINK DO CHECKOUT NORMAL]" class="btn-modal-normal">
+        Continuar só com o guia por R$ 10,00
+      </a>
+    </div>
+  </div>
+
+
+  <!-- SCRIPT VANILLA ULTRA LEVE E RÁPIDO -->
+  <script>
+    function openPremiumPopup() {
+      const overlay = document.getElementById('premiumPopupOverlay');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePremiumPopup() {
+      const overlay = document.getElementById('premiumPopupOverlay');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function handleBackdropClick(event) {
+      if (event.target.id === 'premiumPopupOverlay') {
+        closePremiumPopup();
+      }
+    }
+
+    // Fechar ao teclar Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closePremiumPopup();
+      }
+    });
+  </script>
+
+</body>
+</html>
