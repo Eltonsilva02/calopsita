@@ -4,321 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>As Primeiras 48 Horas com a Sua Calopsita | Guia Prático</title>
-  
-  <!-- WhatsTrack Direct Response Pixel Tracker -->
-  <script>
-  (function() {
-    // 1. Inicializa o Meta Pixel nativo
-    if (!window.fbq) {
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    }
 
-    fbq('init', '1607991243938020');
-    fbq('track', 'PageView');
-
-    // 2. Captura UTMs, fbclid e cookies para alta pontuação no CAPI
-    function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
-    function setCookie(n,v,d){var dt=new Date();dt.setTime(dt.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+dt.toUTCString()+';path=/;SameSite=Lax';}
-
-    function isValidFbclid(val){
-      if(!val||typeof val!=='string') return false;
-      val=val.trim();
-      if(val.length<20||val==='null'||val==='undefined'||val==='none'||val==='false'||val==='fbclid') return false;
-      if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)) return false;
-      if(/^(clk_|ord_|tra_|pay_|chk_|ref_|sub_|lead_|usr_)/i.test(val)) return false;
-      return /^[a-zA-Z0-9_-]+$/.test(val);
-    }
-
-    function isValidFbc(val){
-      if(!val||typeof val!=='string') return false;
-      var parts = val.split('.');
-      if(parts.length < 4) return false;
-      if(parts[0] !== 'fb' || parts[1] !== '1') return false;
-      if(!/^[0-9]{10,14}$/.test(parts[2])) return false;
-      var fbclidPart = parts.slice(3).join('.');
-      return isValidFbclid(fbclidPart);
-    }
-
-    var fbp = getCookie('_fbp');
-    if(!fbp){
-      fbp = 'fb.1.' + Date.now() + '.' + Math.floor(1e9 + Math.random()*9e9);
-      setCookie('_fbp', fbp, 90);
-    }
-
-    var params = new URLSearchParams(window.location.search);
-    var activeTracking = {};
-    
-    // Coleta todos os parâmetros da URL atual
-    params.forEach(function(val, key) {
-      if (val && typeof val === "string") {
-        var clean = val.trim();
-        activeTracking[key] = clean;
-        try { sessionStorage.setItem("wt_" + key, clean); } catch(e){}
-        try { localStorage.setItem("wt_" + key, clean); } catch(e){}
-      }
-    });
-
-    // Recupera parâmetros padrão persistidos se não estiverem na URL atual
-    var standardKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id", "src", "sck", "fbclid", "gclid", "ttclid", "xcod"];
-    standardKeys.forEach(function(key) {
-      if (!activeTracking[key]) {
-        try {
-          var saved = sessionStorage.getItem("wt_" + key) || localStorage.getItem("wt_" + key);
-          if (saved) activeTracking[key] = saved;
-        } catch(e){}
-      }
-    });
-
-    // Preservação estrita do _fbc existente apenas se for legítimo da Meta
-    var existingFbc = getCookie('_fbc');
-    if (existingFbc && isValidFbc(existingFbc)) {
-      activeTracking.fbc = existingFbc;
-    } else {
-      if (existingFbc && !isValidFbc(existingFbc)) {
-        setCookie('_fbc', '', -1);
-      }
-      if (activeTracking.fbclid && isValidFbclid(activeTracking.fbclid)) {
-        var fbc = 'fb.1.' + Date.now() + '.' + activeTracking.fbclid;
-        setCookie('_fbc', fbc, 90);
-        activeTracking.fbc = fbc;
-      } else {
-        delete activeTracking.fbclid;
-        delete activeTracking.fbc;
-      }
-    }
-    activeTracking.fbp = fbp;
-
-    // 3. Injeta e atualiza links de checkout sem duplicar query params
-    function updateCheckoutUrl(rawHref) {
-      if (!rawHref || typeof rawHref !== "string") return rawHref;
-      try {
-        var trimmed = rawHref.trim();
-        if (trimmed.indexOf('#') === 0 || trimmed.indexOf('javascript:') === 0 || trimmed.indexOf('tel:') === 0 || trimmed.indexOf('mailto:') === 0) {
-          return rawHref;
-        }
-        var url = new URL(trimmed, window.location.origin);
-        Object.keys(activeTracking).forEach(function(k) {
-          if (activeTracking[k]) url.searchParams.set(k, activeTracking[k]);
-        });
-        if (!activeTracking.fbc && url.searchParams.has('fbc')) {
-          url.searchParams.delete('fbc');
-        }
-        if (!activeTracking.fbclid && url.searchParams.has('fbclid')) {
-          url.searchParams.delete('fbclid');
-        }
-        if (!url.searchParams.has('src')) {
-          var srcVal = activeTracking.src || activeTracking.utm_source || url.searchParams.get('utm_source');
-          if (srcVal) url.searchParams.set('src', srcVal);
-        }
-        if (!url.searchParams.has('sck')) {
-          var sckParts = [
-            activeTracking.utm_campaign || url.searchParams.get('utm_campaign'),
-            activeTracking.utm_medium || url.searchParams.get('utm_medium'),
-            activeTracking.utm_content || url.searchParams.get('utm_content')
-          ].filter(Boolean);
-          if (sckParts.length) url.searchParams.set('sck', sckParts.join('|'));
-        }
-        return url.toString();
-      } catch(e) {
-        return rawHref;
-      }
-    }
-
-    var checkoutDomains = [
-      'kiwify.com.br', 'pay.kiwify.com.br', 'lowify.com.br', 'pay.lowify.com.br',
-      'hotmart.com', 'pay.hotmart.com', 'braip.com', 'ev.braip.com',
-      'eduzz.com', 'sun.eduzz.com', 'monetizze.com.br', 'cakto.com.br',
-      'pay.cakto.com.br', 'yampi.com.br', 'greenn.com.br', 'kirvano.com',
-      'perfectpay.com.br', 'cartpanda.com', 'ticto.com.br', 'doppus.com',
-      'vega.com.br', 'tribopay.com.br', 'herospark.com', 'hub.la',
-      'lastlink.com', 'abmex.com.br', 'pepper.com.br', 'klinko.com'
-    ];
-
-    function isExcludedNonPurchase(href) {
-      if (!href || typeof href !== "string") return true;
-      var h = href.toLowerCase().trim();
-      if (h.indexOf('wa.me') !== -1 || h.indexOf('whatsapp.com') !== -1 || h.indexOf('whatsapp:') === 0 || h.indexOf('/go/') !== -1) return true;
-      if (h.indexOf('#') === 0 || h.indexOf('javascript:') === 0 || h.indexOf('tel:') === 0 || h.indexOf('mailto:') === 0) return true;
-      if (h.indexOf('instagram.com') !== -1 || h.indexOf('facebook.com') !== -1 || h.indexOf('youtube.com') !== -1 || h.indexOf('tiktok.com') !== -1 || h.indexOf('t.me') !== -1) return true;
-      if (h.indexOf('politica') !== -1 || h.indexOf('termos') !== -1 || h.indexOf('privacidade') !== -1 || h.indexOf('contato') !== -1) return true;
-      return false;
-    }
-
-    var checkoutUrl = "";
-    function isCheckoutUrl(rawHref) {
-      if (!rawHref) return false;
-      try {
-        var trimmed = rawHref.trim();
-        if (isExcludedNonPurchase(trimmed)) return false;
-        var parsed = new URL(trimmed, window.location.origin);
-        if (checkoutUrl && parsed.href.toLowerCase().indexOf(checkoutUrl.toLowerCase()) !== -1) return true;
-        if (parsed.origin === window.location.origin && !checkoutDomains.some(function(d){ return window.location.hostname.indexOf(d) !== -1; })) {
-          var p = parsed.pathname.toLowerCase();
-          if (p.indexOf('checkout') !== -1 || p.indexOf('comprar') !== -1 || p.indexOf('pagar') !== -1 || p.indexOf('pagamento') !== -1 || p.indexOf('order') !== -1) return true;
-          return false;
-        }
-        return checkoutDomains.some(function(d){ return parsed.hostname.indexOf(d) !== -1; });
-      } catch(e){ return false; }
-    }
-
-    // 4. Detecção de InitiateCheckout estritamente para botões de compra
-    var firedIc = false;
-    function triggerInitiateCheckout() {
-      if (firedIc) return;
-      firedIc = true;
-      try {
-        fbq('track', 'InitiateCheckout');
-      } catch(e){}
-    }
-
-    var buttonTexts = [];
-    var cssSelector = "";
-    var useKeywords = true;
-    var strictPurchasePhrases = [
-      'comprar agora', 'comprar', 'finalizar compra', 'finalizar pedido',
-      'adquirir agora', 'adquirir', 'garantir vaga', 'garantir minha vaga',
-      'garantir acesso', 'garantir agora', 'quero comprar', 'quero me inscrever',
-      'assinar agora', 'ir para o checkout', 'ir para checkout', 'efetuar pagamento',
-      'matricule-se', 'matricular agora'
-    ];
-
-    function matchesButton(el) {
-      if (!el) return false;
-      
-      var href = (el.getAttribute("href") || "").trim();
-      var text = (el.innerText || el.textContent || "").trim().toLowerCase();
-
-      if (isExcludedNonPurchase(href)) return false;
-      if (isCheckoutUrl(href)) return true;
-      if (el.classList && el.classList.contains("wt-checkout")) return true;
-
-      for (var i = 0; i < buttonTexts.length; i++) {
-        var targetText = (buttonTexts[i] || "").trim().toLowerCase();
-        if (targetText && text.indexOf(targetText) !== -1) return true;
-      }
-      if (buttonTexts.length > 0) return false;
-
-      if (useKeywords && (!("texto") || "texto" === "texto")) {
-        for (var j = 0; j < strictPurchasePhrases.length; j++) {
-          if (text.indexOf(strictPurchasePhrases[j]) !== -1) return true;
-        }
-      }
-      return false;
-    }
-
-    function injectCheckoutLinks() {
-      var links = document.querySelectorAll("a[href]");
-      links.forEach(function(link) {
-        var href = link.getAttribute("href");
-        if (!href || isExcludedNonPurchase(href)) return;
-        if (isCheckoutUrl(href) || link.classList.contains("wt-checkout") || matchesButton(link)) {
-          var updated = updateCheckoutUrl(href);
-          if (updated && updated !== href) {
-            link.setAttribute("href", updated);
-          }
-        }
-      });
-
-      var forms = document.querySelectorAll("form[action]");
-      forms.forEach(function(form) {
-        var action = form.getAttribute("action");
-        if (action && (isCheckoutUrl(action) || form.classList.contains("wt-checkout"))) {
-          Object.keys(activeTracking).forEach(function(k) {
-            if (activeTracking[k] && !form.querySelector('input[name="' + k + '"]')) {
-              var inp = document.createElement("input");
-              inp.type = "hidden";
-              inp.name = k;
-              inp.value = activeTracking[k];
-              form.appendChild(inp);
-            }
-          });
-        }
-      });
-    }
-
-    // Intercepta mousedown, pointerdown, touchstart e click para garantir injeção em botões dinâmicos (Elementor, Popups)
-    function handleInteraction(e) {
-      var target = e.target;
-      if (!target) return;
-      var btn = target.closest("button, a, [role='button'], input[type='submit']");
-      if (!btn) return;
-
-      // Dispara InitiateCheckout apenas no clique oficial de compra
-      if (e.type === "click" && matchesButton(btn)) {
-        triggerInitiateCheckout();
-      }
-
-      // Injeta/atualiza parâmetros no link antes da navegação do navegador
-      var aTag = target.closest("a[href]");
-      if (aTag) {
-        var href = aTag.getAttribute("href");
-        if (href && !isExcludedNonPurchase(href) && (isCheckoutUrl(href) || aTag.classList.contains("wt-checkout") || matchesButton(aTag))) {
-          var updated = updateCheckoutUrl(href);
-          if (updated && updated !== href) {
-            aTag.setAttribute("href", updated);
-          }
-        }
-      }
-
-      // Suporte para botões que usam data-href ou data-url
-      var dataHref = btn.getAttribute("data-href") || btn.getAttribute("data-url");
-      if (dataHref && !isExcludedNonPurchase(dataHref) && (isCheckoutUrl(dataHref) || matchesButton(btn))) {
-        var updatedData = updateCheckoutUrl(dataHref);
-        btn.setAttribute("data-href", updatedData);
-        btn.setAttribute("data-url", updatedData);
-      }
-    }
-
-    ["pointerdown", "mousedown", "click", "touchstart"].forEach(function(evt) {
-      document.addEventListener(evt, handleInteraction, true);
-    });
-
-    // Executa imediatamente e no carregamento
-    injectCheckoutLinks();
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", injectCheckoutLinks);
-    }
-    window.addEventListener("load", injectCheckoutLinks);
-
-    // Intervalos de retentativa para botões com delay (ex: Vturb, timers de oferta)
-    [300, 800, 1500, 3000, 5000, 10000].forEach(function(ms) {
-      setTimeout(injectCheckoutLinks, ms);
-    });
-
-    // Observador de mutações no DOM para novos elementos inseridos dinamicamente
-    if (window.MutationObserver) {
-      var initObserver = function() {
-        if (document.body) {
-          var obs = new MutationObserver(function() { injectCheckoutLinks(); });
-          obs.observe(document.body, { childList: true, subtree: true });
-        }
-      };
-      if (document.body) {
-        initObserver();
-      } else {
-        document.addEventListener("DOMContentLoaded", initObserver);
-      }
-    }
-  })();
-  </script>
-
-  <!-- OTIMIZACOES DE PERFORMANCE E CONNECT RATE (PRECONNECT E PRELOAD) -->
-  <link rel="preconnect" href="https://i.ibb.co" crossorigin>
-  <link rel="dns-prefetch" href="https://i.ibb.co">
-  <link rel="preload" as="image" href="https://i.ibb.co/1fPdWm83/Mockup-do-Guia-Pr-tico-para-Calopsitas-1.png" fetchpriority="high">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- OTIMIZACOES DE PERFORMANCE ULTRA-RAPIDA (ASSETS LOCAIS) -->
+  <link rel="preload" href="assets/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" as="image" href="assets/img/webp/hero_mockup_320.webp" imagesrcset="assets/img/webp/hero_mockup_320.webp 320w, assets/img/webp/hero_mockup_480.webp 480w" imagesizes="(max-width: 480px) 320px, 480px" type="image/webp" fetchpriority="high">
 
   <style>
+    @font-face {
+      font-family: 'Plus Jakarta Sans';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('assets/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+
     :root {
       --bg-main: #FAF7F2;
       --bg-card: #FFFFFF;
@@ -535,18 +235,7 @@
     }
 
     /* Tag Imediatamente Acima do Vídeo 9:16 */
-    .video-above-label {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--terracota);
-      background: var(--terracota-light);
-      padding: 5px 14px;
-      border-radius: var(--radius-pill);
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
+    
 
     /* DOBRA 1: Imagem Principal Mockup */
     .hero-mockup-wrapper {
@@ -748,37 +437,13 @@
     }
 
     /* SEÇÃO DEPOIMENTOS */
-    .reviews-summary-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      padding: 6px 16px;
-      border-radius: var(--radius-pill);
-      margin: 0 auto 20px;
-      box-shadow: 0 2px 8px rgba(45, 35, 28, 0.04);
-    }
+    
 
-    .stars-gold {
-      color: #FFB800;
-      font-size: 16px;
-      letter-spacing: 2px;
-      line-height: 1;
-    }
+    
 
-    .rating-score {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--text-main);
-    }
+    
 
-    .rating-count {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--verde-salvia-dark);
-    }
+    
 
     .testimonial-card-item {
       width: 250px;
@@ -1407,16 +1072,18 @@
 
       <!-- IMAGEM PRINCIPAL DOBRA 1 (Mockup Oficial em proporção 1:1 original) -->
       <div class="hero-mockup-wrapper">
-        <img 
-          src="https://i.ibb.co/1fPdWm83/Mockup-do-Guia-Pr-tico-para-Calopsitas-1.png" 
-          alt="Guia das Primeiras 48 Horas com a Sua Calopsita" 
-          class="hero-mockup-img"
-          width="320" 
-          height="320"
-          loading="eager"
-          fetchpriority="high"
-          decoding="async"
-        >
+        <picture>
+          <source type="image/webp" srcset="assets/img/webp/hero_mockup_320.webp 320w, assets/img/webp/hero_mockup_480.webp 480w" sizes="(max-width: 480px) 320px, 480px">
+          <img 
+            src="assets/img/webp/hero_mockup_320.webp" 
+            alt="Guia das Primeiras 48 Horas com a Sua Calopsita" 
+            class="hero-mockup-img"
+            width="320" 
+            height="320"
+            fetchpriority="high"
+            decoding="async"
+          >
+        </picture>
       </div>
 
       <!-- BULLETS BREVES DE APOIO (Somente Produto Principal) -->
@@ -1477,7 +1144,7 @@
             <!-- 3 Entregáveis Originais -->
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/xtfswdGZ/Guia-das-Primeiras-48-Horas-com-sua-Calopsita.png" 
+                src="assets/img/webp/carousel_1_168.webp" srcset="assets/img/webp/carousel_1_168.webp 168w, assets/img/webp/carousel_1_240.webp 240w" sizes="168px" 
                 alt="Guia das Primeiras 48 Horas com sua Calopsita" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1489,7 +1156,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/XrswkgZt/Guia-pr-tico-da-alimenta-o-da-calopsita.png" 
+                src="assets/img/webp/carousel_2_168.webp" srcset="assets/img/webp/carousel_2_168.webp 168w, assets/img/webp/carousel_2_240.webp 240w" sizes="168px" 
                 alt="Guia prático da alimentação da calopsita" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1501,7 +1168,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/ycYFjt3G/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-32.png" 
+                src="assets/img/webp/carousel_3_168.webp" srcset="assets/img/webp/carousel_3_168.webp 168w, assets/img/webp/carousel_3_240.webp 240w" sizes="168px" 
                 alt="Página de rotina e adaptação da ave" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1514,7 +1181,7 @@
             <!-- 3 Entregáveis Duplicados para Loop Contínuo Impecável -->
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/xtfswdGZ/Guia-das-Primeiras-48-Horas-com-sua-Calopsita.png" 
+                src="assets/img/webp/carousel_1_168.webp" srcset="assets/img/webp/carousel_1_168.webp 168w, assets/img/webp/carousel_1_240.webp 240w" sizes="168px" 
                 alt="Guia das Primeiras 48 Horas com sua Calopsita" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1526,7 +1193,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/XrswkgZt/Guia-pr-tico-da-alimenta-o-da-calopsita.png" 
+                src="assets/img/webp/carousel_2_168.webp" srcset="assets/img/webp/carousel_2_168.webp 168w, assets/img/webp/carousel_2_240.webp 240w" sizes="168px" 
                 alt="Guia prático da alimentação da calopsita" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1538,7 +1205,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/ycYFjt3G/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-32.png" 
+                src="assets/img/webp/carousel_3_168.webp" srcset="assets/img/webp/carousel_3_168.webp 168w, assets/img/webp/carousel_3_240.webp 240w" sizes="168px" 
                 alt="Página de rotina e adaptação da ave" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1556,7 +1223,7 @@
             <!-- 3 Entregáveis Originais sem repetir os do Carrossel 1 -->
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/s9Y5wG8q/Guia-pr-tico-para-sair-com-seguran-a.png" 
+                src="assets/img/webp/carousel_4_168.webp" srcset="assets/img/webp/carousel_4_168.webp 168w, assets/img/webp/carousel_4_240.webp 240w" sizes="168px" 
                 alt="Guia prático para sair com segurança" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1568,7 +1235,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/XrKwy670/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-26.png" 
+                src="assets/img/webp/carousel_5_168.webp" srcset="assets/img/webp/carousel_5_168.webp 168w, assets/img/webp/carousel_5_240.webp 240w" sizes="168px" 
                 alt="Orientações e manejo tranquilo para a ave" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1580,7 +1247,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/Mzj3cd2/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-38.png" 
+                src="assets/img/webp/carousel_6_168.webp" srcset="assets/img/webp/carousel_6_168.webp 168w, assets/img/webp/carousel_6_240.webp 240w" sizes="168px" 
                 alt="Checklists práticos e rotina das primeiras horas" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1593,7 +1260,7 @@
             <!-- 3 Entregáveis Duplicados para Loop Contínuo Impecável -->
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/s9Y5wG8q/Guia-pr-tico-para-sair-com-seguran-a.png" 
+                src="assets/img/webp/carousel_4_168.webp" srcset="assets/img/webp/carousel_4_168.webp 168w, assets/img/webp/carousel_4_240.webp 240w" sizes="168px" 
                 alt="Guia prático para sair com segurança" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1605,7 +1272,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/XrKwy670/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-26.png" 
+                src="assets/img/webp/carousel_5_168.webp" srcset="assets/img/webp/carousel_5_168.webp 168w, assets/img/webp/carousel_5_240.webp 240w" sizes="168px" 
                 alt="Orientações e manejo tranquilo para a ave" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1617,7 +1284,7 @@
 
             <div class="a4-sheet-card">
               <img 
-                src="https://i.ibb.co/Mzj3cd2/Imagem-do-Chat-GPT-14-de-nov-de-2026-19-17-38.png" 
+                src="assets/img/webp/carousel_6_168.webp" srcset="assets/img/webp/carousel_6_168.webp 168w, assets/img/webp/carousel_6_240.webp 240w" sizes="168px" 
                 alt="Checklists práticos e rotina das primeiras horas" 
                 class="a4-sheet-img" 
                 width="168" 
@@ -1706,7 +1373,7 @@
         <!-- IMAGEM DO PRODUTO PRINCIPAL DOBRA 4 (Proporção 1:1 original) -->
         <div class="product-mockup-wrapper" style="max-width: 280px; margin: 12px auto 20px;">
           <img 
-            src="https://i.ibb.co/zWv65JMp/Guia-das-Primeiras-48-Horas-da-Calopsita.png" 
+            src="assets/img/webp/bundle_main_280.webp" srcset="assets/img/webp/bundle_main_280.webp 280w, assets/img/webp/bundle_main_560.webp 560w" sizes="(max-width: 480px) 280px, 560px" 
             alt="Guia das Primeiras 48 Horas da Calopsita" 
             class="product-mockup-img"
             width="280" 
@@ -1858,7 +1525,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/5hJ4GDHK/Imagem-do-Chat-GPT-31-de-out-de-2026-15-06-22-3.png" alt="Mariana Oliveira" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_1_96.webp" alt="Mariana Oliveira" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Mariana Oliveira</div>
@@ -1871,7 +1538,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/gFZyj8tQ/mulher-tutora-calopsita-referencia-2-300x300.jpg" alt="Juliana Martins" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_2_96.webp" alt="Juliana Martins" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Juliana Martins</div>
@@ -1884,7 +1551,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/Fqh23575/Selfie-com-Tr-s-Calopsitas.png" alt="Camila Ferreira" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_3_96.webp" alt="Camila Ferreira" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Camila Ferreira</div>
@@ -1897,7 +1564,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/21zxs3Fq/Selfie-Afetuosa-com-Calopsita-Amarela.png" alt="Fernanda Rodrigues" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_4_96.webp" alt="Fernanda Rodrigues" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Fernanda Rodrigues</div>
@@ -1911,7 +1578,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/5hJ4GDHK/Imagem-do-Chat-GPT-31-de-out-de-2026-15-06-22-3.png" alt="Mariana Oliveira" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_1_96.webp" alt="Mariana Oliveira" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Mariana Oliveira</div>
@@ -1924,7 +1591,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/gFZyj8tQ/mulher-tutora-calopsita-referencia-2-300x300.jpg" alt="Juliana Martins" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_2_96.webp" alt="Juliana Martins" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Juliana Martins</div>
@@ -1937,7 +1604,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/Fqh23575/Selfie-com-Tr-s-Calopsitas.png" alt="Camila Ferreira" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_3_96.webp" alt="Camila Ferreira" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Camila Ferreira</div>
@@ -1950,7 +1617,7 @@
             <div class="testimonial-card-item">
               <div class="testimonial-top-row">
                 <div class="testimonial-photo-circle">
-                  <img src="https://i.ibb.co/21zxs3Fq/Selfie-Afetuosa-com-Calopsita-Amarela.png" alt="Fernanda Rodrigues" class="testimonial-img" loading="lazy">
+                  <img src="assets/img/webp/avatar_4_96.webp" alt="Fernanda Rodrigues" class="testimonial-img" width="48" height="48" loading="lazy" decoding="async">
                 </div>
                 <div class="testimonial-user-info">
                   <div class="testimonial-author-name">Fernanda Rodrigues</div>
@@ -1989,7 +1656,7 @@
         <!-- IMAGEM DO CARD DE OFERTA DOBRA 6 (Proporção 1:1 original) -->
         <div class="product-mockup-wrapper" style="max-width: 240px; margin: 8px auto 16px;">
           <img 
-            src="https://i.ibb.co/21tVytFF/Mockup-3-D-do-Guia-Pr-tico-da-Calopsita-2.png" 
+            src="assets/img/webp/offer_mockup_280.webp" srcset="assets/img/webp/offer_mockup_280.webp 280w, assets/img/webp/offer_mockup_560.webp 560w" sizes="(max-width: 480px) 240px, 560px" 
             alt="Mockup do Guia Prático da Calopsita" 
             class="product-mockup-img"
             width="240" 
@@ -2189,7 +1856,7 @@
         <div class="modal-grid-item">
           <div class="modal-item-mockup">
             <img 
-              src="https://i.ibb.co/21tVytFF/Mockup-3-D-do-Guia-Pr-tico-da-Calopsita-2.png" 
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'%3E%3C/svg%3E" data-src="assets/img/webp/popup_guide1_112.webp" 
               alt="Guia das Primeiras 48 Horas" 
               class="modal-thumb-img" 
               width="56" 
@@ -2204,7 +1871,7 @@
         <div class="modal-grid-item">
           <div class="modal-item-mockup">
             <img 
-              src="https://i.ibb.co/SXBL2zt9/Guia-Alimentar-da-Calopsita-em-3-D-3.png" 
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'%3E%3C/svg%3E" data-src="assets/img/webp/popup_guide2_112.webp" 
               alt="Guia Alimentar" 
               class="modal-thumb-img" 
               width="56" 
@@ -2219,7 +1886,7 @@
         <div class="modal-grid-item">
           <div class="modal-item-mockup">
             <img 
-              src="https://i.ibb.co/WWc4Sk1x/Guia-de-Confian-a-para-Calopsitas-4.png" 
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'%3E%3C/svg%3E" data-src="assets/img/webp/popup_guide3_112.webp" 
               alt="Guia de Confiança" 
               class="modal-thumb-img" 
               width="56" 
@@ -2234,7 +1901,7 @@
         <div class="modal-grid-item">
           <div class="modal-item-mockup">
             <img 
-              src="https://i.ibb.co/hF5wTbVc/Mockup-do-Guia-Casa-Segura-para-Calopsitas-5.png" 
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'%3E%3C/svg%3E" data-src="assets/img/webp/popup_guide4_112.webp" 
               alt="Manual Casa Segura" 
               class="modal-thumb-img" 
               width="56" 
@@ -2273,6 +1940,10 @@
   <script>
     function openPremiumPopup() {
       const overlay = document.getElementById('premiumPopupOverlay');
+      overlay.querySelectorAll('img[data-src]').forEach(function(img) {
+        img.src = img.getAttribute('data-src');
+        img.removeAttribute('data-src');
+      });
       overlay.classList.add('active');
       document.body.style.overflow = 'hidden';
     }
@@ -2295,6 +1966,350 @@
         closePremiumPopup();
       }
     });
+  </script>
+
+
+  
+  <!-- WhatsTrack Direct Response Pixel Tracker -->
+  <script>
+  (function() {
+    // 1. Inicializa o Meta Pixel nativo com fila leve na memória sem travar a thread
+    if (!window.fbq) {
+      window.fbq = function() {
+        if (window.fbq.callMethod) {
+          window.fbq.callMethod.apply(window.fbq, arguments);
+        } else {
+          window.fbq.queue.push(arguments);
+        }
+      };
+      if (!window._fbq) window._fbq = window.fbq;
+      window.fbq.push = window.fbq;
+      window.fbq.loaded = true;
+      window.fbq.version = '2.0';
+      window.fbq.queue = [];
+    }
+
+    fbq('init', '1607991243938020');
+    fbq('track', 'PageView');
+
+    // Carrega o script pesado externo da Meta de forma assíncrona após a renderização
+    function loadMetaScript() {
+      if (document.getElementById('meta-pixel-loader')) return;
+      var s = document.createElement('script');
+      s.id = 'meta-pixel-loader';
+      s.async = true;
+      s.src = 'https://connect.facebook.net/en_US/fbevents.js';
+      var first = document.getElementsByTagName('script')[0];
+      if (first && first.parentNode) {
+        first.parentNode.insertBefore(s, first);
+      } else {
+        (document.head || document.body).appendChild(s);
+      }
+    }
+
+    var trackingStarted = false;
+    function startTracking() {
+      if (trackingStarted) return;
+      trackingStarted = true;
+      loadMetaScript();
+    }
+
+    if (document.readyState === 'complete') {
+      setTimeout(startTracking, 4500);
+    } else {
+      window.addEventListener('load', function() { setTimeout(startTracking, 4500); });
+    }
+    ['touchstart', 'scroll', 'click'].forEach(function(ev) {
+      window.addEventListener(ev, startTracking, { once: true, passive: true });
+    });
+
+    // 2. Captura UTMs, fbclid e cookies para alta pontuação no CAPI
+    function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
+    function setCookie(n,v,d){var dt=new Date();dt.setTime(dt.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+dt.toUTCString()+';path=/;SameSite=Lax';}
+
+    function isValidFbclid(val){
+      if(!val||typeof val!=='string') return false;
+      val=val.trim();
+      if(val.length<20||val==='null'||val==='undefined'||val==='none'||val==='false'||val==='fbclid') return false;
+      if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)) return false;
+      if(/^(clk_|ord_|tra_|pay_|chk_|ref_|sub_|lead_|usr_)/i.test(val)) return false;
+      return /^[a-zA-Z0-9_-]+$/.test(val);
+    }
+
+    function isValidFbc(val){
+      if(!val||typeof val!=='string') return false;
+      var parts = val.split('.');
+      if(parts.length < 4) return false;
+      if(parts[0] !== 'fb' || parts[1] !== '1') return false;
+      if(!/^[0-9]{10,14}$/.test(parts[2])) return false;
+      var fbclidPart = parts.slice(3).join('.');
+      return isValidFbclid(fbclidPart);
+    }
+
+    var fbp = getCookie('_fbp');
+    if(!fbp){
+      fbp = 'fb.1.' + Date.now() + '.' + Math.floor(1e9 + Math.random()*9e9);
+      setCookie('_fbp', fbp, 90);
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var activeTracking = {};
+    
+    // Coleta todos os parâmetros da URL atual
+    params.forEach(function(val, key) {
+      if (val && typeof val === "string") {
+        var clean = val.trim();
+        activeTracking[key] = clean;
+        try { sessionStorage.setItem("wt_" + key, clean); } catch(e){}
+        try { localStorage.setItem("wt_" + key, clean); } catch(e){}
+      }
+    });
+
+    // Recupera parâmetros padrão persistidos se não estiverem na URL atual
+    var standardKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id", "src", "sck", "fbclid", "gclid", "ttclid", "xcod"];
+    standardKeys.forEach(function(key) {
+      if (!activeTracking[key]) {
+        try {
+          var saved = sessionStorage.getItem("wt_" + key) || localStorage.getItem("wt_" + key);
+          if (saved) activeTracking[key] = saved;
+        } catch(e){}
+      }
+    });
+
+    // Preservação estrita do _fbc existente apenas se for legítimo da Meta
+    var existingFbc = getCookie('_fbc');
+    if (existingFbc && isValidFbc(existingFbc)) {
+      activeTracking.fbc = existingFbc;
+    } else {
+      if (existingFbc && !isValidFbc(existingFbc)) {
+        setCookie('_fbc', '', -1);
+      }
+      if (activeTracking.fbclid && isValidFbclid(activeTracking.fbclid)) {
+        var fbc = 'fb.1.' + Date.now() + '.' + activeTracking.fbclid;
+        setCookie('_fbc', fbc, 90);
+        activeTracking.fbc = fbc;
+      } else {
+        delete activeTracking.fbclid;
+        delete activeTracking.fbc;
+      }
+    }
+    activeTracking.fbp = fbp;
+
+    // 3. Injeta e atualiza links de checkout sem duplicar query params
+    function updateCheckoutUrl(rawHref) {
+      if (!rawHref || typeof rawHref !== "string") return rawHref;
+      try {
+        var trimmed = rawHref.trim();
+        if (trimmed.indexOf('#') === 0 || trimmed.indexOf('javascript:') === 0 || trimmed.indexOf('tel:') === 0 || trimmed.indexOf('mailto:') === 0) {
+          return rawHref;
+        }
+        var url = new URL(trimmed, window.location.origin);
+        Object.keys(activeTracking).forEach(function(k) {
+          if (activeTracking[k]) url.searchParams.set(k, activeTracking[k]);
+        });
+        if (!activeTracking.fbc && url.searchParams.has('fbc')) {
+          url.searchParams.delete('fbc');
+        }
+        if (!activeTracking.fbclid && url.searchParams.has('fbclid')) {
+          url.searchParams.delete('fbclid');
+        }
+        if (!url.searchParams.has('src')) {
+          var srcVal = activeTracking.src || activeTracking.utm_source || url.searchParams.get('utm_source');
+          if (srcVal) url.searchParams.set('src', srcVal);
+        }
+        if (!url.searchParams.has('sck')) {
+          var sckParts = [
+            activeTracking.utm_campaign || url.searchParams.get('utm_campaign'),
+            activeTracking.utm_medium || url.searchParams.get('utm_medium'),
+            activeTracking.utm_content || url.searchParams.get('utm_content')
+          ].filter(Boolean);
+          if (sckParts.length) url.searchParams.set('sck', sckParts.join('|'));
+        }
+        return url.toString();
+      } catch(e) {
+        return rawHref;
+      }
+    }
+
+    var checkoutDomains = [
+      'kiwify.com.br', 'pay.kiwify.com.br', 'lowify.com.br', 'pay.lowify.com.br',
+      'hotmart.com', 'pay.hotmart.com', 'braip.com', 'ev.braip.com',
+      'eduzz.com', 'sun.eduzz.com', 'monetizze.com.br', 'cakto.com.br',
+      'pay.cakto.com.br', 'yampi.com.br', 'greenn.com.br', 'kirvano.com',
+      'perfectpay.com.br', 'cartpanda.com', 'ticto.com.br', 'doppus.com',
+      'vega.com.br', 'tribopay.com.br', 'herospark.com', 'hub.la',
+      'lastlink.com', 'abmex.com.br', 'pepper.com.br', 'klinko.com'
+    ];
+
+    function isExcludedNonPurchase(href) {
+      if (!href || typeof href !== "string") return true;
+      var h = href.toLowerCase().trim();
+      if (h.indexOf('wa.me') !== -1 || h.indexOf('whatsapp.com') !== -1 || h.indexOf('whatsapp:') === 0 || h.indexOf('/go/') !== -1) return true;
+      if (h.indexOf('#') === 0 || h.indexOf('javascript:') === 0 || h.indexOf('tel:') === 0 || h.indexOf('mailto:') === 0) return true;
+      if (h.indexOf('instagram.com') !== -1 || h.indexOf('facebook.com') !== -1 || h.indexOf('youtube.com') !== -1 || h.indexOf('tiktok.com') !== -1 || h.indexOf('t.me') !== -1) return true;
+      if (h.indexOf('politica') !== -1 || h.indexOf('termos') !== -1 || h.indexOf('privacidade') !== -1 || h.indexOf('contato') !== -1) return true;
+      return false;
+    }
+
+    var checkoutUrl = "";
+    function isCheckoutUrl(rawHref) {
+      if (!rawHref) return false;
+      try {
+        var trimmed = rawHref.trim();
+        if (isExcludedNonPurchase(trimmed)) return false;
+        var parsed = new URL(trimmed, window.location.origin);
+        if (checkoutUrl && parsed.href.toLowerCase().indexOf(checkoutUrl.toLowerCase()) !== -1) return true;
+        if (parsed.origin === window.location.origin && !checkoutDomains.some(function(d){ return window.location.hostname.indexOf(d) !== -1; })) {
+          var p = parsed.pathname.toLowerCase();
+          if (p.indexOf('checkout') !== -1 || p.indexOf('comprar') !== -1 || p.indexOf('pagar') !== -1 || p.indexOf('pagamento') !== -1 || p.indexOf('order') !== -1) return true;
+          return false;
+        }
+        return checkoutDomains.some(function(d){ return parsed.hostname.indexOf(d) !== -1; });
+      } catch(e){ return false; }
+    }
+
+    // 4. Detecção de InitiateCheckout estritamente para botões de compra
+    var firedIc = false;
+    function triggerInitiateCheckout() {
+      try { loadMetaScript(); } catch(e){}
+      if (firedIc) return;
+      firedIc = true;
+      try {
+        fbq('track', 'InitiateCheckout');
+      } catch(e){}
+    }
+
+    var buttonTexts = [];
+    var cssSelector = "";
+    var useKeywords = true;
+    var strictPurchasePhrases = [
+      'comprar agora', 'comprar', 'finalizar compra', 'finalizar pedido',
+      'adquirir agora', 'adquirir', 'garantir vaga', 'garantir minha vaga',
+      'garantir acesso', 'garantir agora', 'quero comprar', 'quero me inscrever',
+      'assinar agora', 'ir para o checkout', 'ir para checkout', 'efetuar pagamento',
+      'matricule-se', 'matricular agora'
+    ];
+
+    function matchesButton(el) {
+      if (!el) return false;
+      
+      var href = (el.getAttribute("href") || "").trim();
+      var text = (el.innerText || el.textContent || "").trim().toLowerCase();
+
+      if (isExcludedNonPurchase(href)) return false;
+      if (isCheckoutUrl(href)) return true;
+      if (el.classList && el.classList.contains("wt-checkout")) return true;
+
+      for (var i = 0; i < buttonTexts.length; i++) {
+        var targetText = (buttonTexts[i] || "").trim().toLowerCase();
+        if (targetText && text.indexOf(targetText) !== -1) return true;
+      }
+      if (buttonTexts.length > 0) return false;
+
+      if (useKeywords && (!("texto") || "texto" === "texto")) {
+        for (var j = 0; j < strictPurchasePhrases.length; j++) {
+          if (text.indexOf(strictPurchasePhrases[j]) !== -1) return true;
+        }
+      }
+      return false;
+    }
+
+    function injectCheckoutLinks() {
+      var links = document.querySelectorAll("a[href]");
+      links.forEach(function(link) {
+        var href = link.getAttribute("href");
+        if (!href || isExcludedNonPurchase(href)) return;
+        if (isCheckoutUrl(href) || link.classList.contains("wt-checkout") || matchesButton(link)) {
+          var updated = updateCheckoutUrl(href);
+          if (updated && updated !== href) {
+            link.setAttribute("href", updated);
+          }
+        }
+      });
+
+      var forms = document.querySelectorAll("form[action]");
+      forms.forEach(function(form) {
+        var action = form.getAttribute("action");
+        if (action && (isCheckoutUrl(action) || form.classList.contains("wt-checkout"))) {
+          Object.keys(activeTracking).forEach(function(k) {
+            if (activeTracking[k] && !form.querySelector('input[name="' + k + '"]')) {
+              var inp = document.createElement("input");
+              inp.type = "hidden";
+              inp.name = k;
+              inp.value = activeTracking[k];
+              form.appendChild(inp);
+            }
+          });
+        }
+      });
+    }
+
+    // Intercepta mousedown, pointerdown, touchstart e click para garantir injeção em botões dinâmicos (Elementor, Popups)
+    function handleInteraction(e) {
+      var target = e.target;
+      if (!target) return;
+      var btn = target.closest("button, a, [role='button'], input[type='submit']");
+      if (!btn) return;
+
+      // Dispara InitiateCheckout apenas no clique oficial de compra
+      if (e.type === "click" && matchesButton(btn)) {
+        triggerInitiateCheckout();
+      }
+
+      // Injeta/atualiza parâmetros no link antes da navegação do navegador
+      var aTag = target.closest("a[href]");
+      if (aTag) {
+        var href = aTag.getAttribute("href");
+        if (href && !isExcludedNonPurchase(href) && (isCheckoutUrl(href) || aTag.classList.contains("wt-checkout") || matchesButton(aTag))) {
+          var updated = updateCheckoutUrl(href);
+          if (updated && updated !== href) {
+            aTag.setAttribute("href", updated);
+          }
+        }
+      }
+
+      // Suporte para botões que usam data-href ou data-url
+      var dataHref = btn.getAttribute("data-href") || btn.getAttribute("data-url");
+      if (dataHref && !isExcludedNonPurchase(dataHref) && (isCheckoutUrl(dataHref) || matchesButton(btn))) {
+        var updatedData = updateCheckoutUrl(dataHref);
+        btn.setAttribute("data-href", updatedData);
+        btn.setAttribute("data-url", updatedData);
+      }
+    }
+
+    ["pointerdown", "mousedown", "click", "touchstart"].forEach(function(evt) {
+      document.addEventListener(evt, handleInteraction, true);
+    });
+
+    // Executa imediatamente e no carregamento
+    injectCheckoutLinks();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", injectCheckoutLinks);
+    }
+    window.addEventListener("load", injectCheckoutLinks);
+
+    // Intervalos de retentativa para botões com delay (ex: Vturb, timers de oferta)
+    setTimeout(injectCheckoutLinks, 1000);
+
+    // Observador de mutações no DOM para novos elementos inseridos dinamicamente
+    if (window.MutationObserver) {
+      var mutTimer = null;
+      var initObserver = function() {
+        if (document.body) {
+          var obs = new MutationObserver(function() {
+            clearTimeout(mutTimer);
+            mutTimer = setTimeout(injectCheckoutLinks, 300);
+          });
+          obs.observe(document.body, { childList: true, subtree: true });
+        }
+      };
+      if (document.body) {
+        initObserver();
+      } else {
+        document.addEventListener("DOMContentLoaded", initObserver);
+      }
+    }
+  })();
   </script>
 
 </body>
