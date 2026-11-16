@@ -6,6 +6,404 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%9C%3C/text%3E%3C/svg%3E">
   <title>As Primeiras 48 Horas com a Sua Calopsita | Guia Prático</title>
 
+  <!-- WhatsTrack Direct Response Pixel Tracker -->
+<script>
+(function() {
+  // 1. Inicializa o Meta Pixel nativo
+  if (!window.fbq) {
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+  }
+
+  fbq('init', '1607991243938020');
+
+  // Função para envio de eventos CAPI Server-side diretamente para o WhatsTrack
+  function sendServerEvent(eventName, eventId, customData) {
+    try {
+      if ("both" === "pixel") return;
+      var endpoint = "https://bqcxnphornmkhodezsjd.supabase.co";
+      var url = endpoint.replace(/\/$/, "") + "/functions/v1/pixel";
+      var pids = ["1607991243938020"];
+      if (!pids || !pids.length) return;
+      var testCode = (new URLSearchParams(window.location.search)).get("test_event_code") ||
+        (new URLSearchParams(window.location.search)).get("test_code") ||
+        window.wt_test_event_code ||
+        undefined;
+      var payload = {
+        action: "track",
+        pixel_ids: pids,
+        event_name: eventName,
+        event_id: eventId,
+        url: window.location.href,
+        fbp: getCookie("_fbp"),
+        fbc: getCookie("_fbc"),
+        user_agent: navigator.userAgent,
+        custom_data: customData || {},
+        test_event_code: testCode
+      };
+      var payloadStr = JSON.stringify(payload);
+      var beaconSent = false;
+      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+        try {
+          var blob = new Blob([payloadStr], { type: "application/json" });
+          beaconSent = navigator.sendBeacon(url, blob);
+        } catch(e) {}
+      }
+      if (!beaconSent && typeof fetch !== "undefined") {
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payloadStr,
+          keepalive: true,
+          mode: "cors"
+        }).catch(function() {});
+      }
+    } catch(e) {}
+  }
+
+  // Disparo de PageView com deduplicação pareada (eventID idêntico no Pixel e na CAPI)
+  var pvEventId = "wt_pv_" + Date.now() + "_" + Math.floor(Math.random() * 1000000000);
+  window.wt_pv_event_id = pvEventId;
+
+  try { fbq('track', 'PageView', {}, { eventID: pvEventId }); } catch(e){}
+  sendServerEvent("PageView", pvEventId, {});
+
+  // 2. Captura UTMs, fbclid e cookies para alta pontuação no CAPI
+  function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
+  function setCookie(n,v,d){var dt=new Date();dt.setTime(dt.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+dt.toUTCString()+';path=/;SameSite=Lax';}
+
+  function isValidFbclid(val){
+    if(!val||typeof val!=='string') return false;
+    val=val.trim();
+    if(val.length<20||val==='null'||val==='undefined'||val==='none'||val==='false'||val==='fbclid') return false;
+    if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)) return false;
+    if(/^(clk_|ord_|tra_|pay_|chk_|ref_|sub_|lead_|usr_)/i.test(val)) return false;
+    return /^[a-zA-Z0-9_-]+$/.test(val);
+  }
+
+  function isValidFbc(val){
+    if(!val||typeof val!=='string') return false;
+    var parts = val.split('.');
+    if(parts.length < 4) return false;
+    if(parts[0] !== 'fb' || parts[1] !== '1') return false;
+    if(!/^[0-9]{10,14}$/.test(parts[2])) return false;
+    var fbclidPart = parts.slice(3).join('.');
+    return isValidFbclid(fbclidPart);
+  }
+
+  var fbp = getCookie('_fbp');
+  if(!fbp){
+    fbp = 'fb.1.' + Date.now() + '.' + Math.floor(1e9 + Math.random()*9e9);
+    setCookie('_fbp', fbp, 90);
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var activeTracking = {};
+  
+  // Coleta todos os parâmetros da URL atual
+  params.forEach(function(val, key) {
+    if (val && typeof val === "string") {
+      var clean = val.trim();
+      activeTracking[key] = clean;
+      try { sessionStorage.setItem("wt_" + key, clean); } catch(e){}
+      try { localStorage.setItem("wt_" + key, clean); } catch(e){}
+    }
+  });
+
+  // Recupera parâmetros padrão persistidos se não estiverem na URL atual
+  var standardKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id", "src", "sck", "fbclid", "gclid", "ttclid", "xcod"];
+  standardKeys.forEach(function(key) {
+    if (!activeTracking[key]) {
+      try {
+        var saved = sessionStorage.getItem("wt_" + key) || localStorage.getItem("wt_" + key);
+        if (saved) activeTracking[key] = saved;
+      } catch(e){}
+    }
+  });
+
+  // Preservação estrita do _fbc existente apenas se for legítimo da Meta
+  var existingFbc = getCookie('_fbc');
+  if (existingFbc && isValidFbc(existingFbc)) {
+    activeTracking.fbc = existingFbc;
+  } else {
+    if (existingFbc && !isValidFbc(existingFbc)) {
+      setCookie('_fbc', '', -1);
+    }
+    if (activeTracking.fbclid && isValidFbclid(activeTracking.fbclid)) {
+      var fbc = 'fb.1.' + Date.now() + '.' + activeTracking.fbclid;
+      setCookie('_fbc', fbc, 90);
+      activeTracking.fbc = fbc;
+    } else {
+      delete activeTracking.fbclid;
+      delete activeTracking.fbc;
+    }
+  }
+  activeTracking.fbp = fbp;
+
+  // 3. Injeta e atualiza links de checkout sem duplicar query params
+  function updateCheckoutUrl(rawHref) {
+    if (!rawHref || typeof rawHref !== "string") return rawHref;
+    try {
+      var trimmed = rawHref.trim();
+      if (trimmed.indexOf('#') === 0 || trimmed.indexOf('javascript:') === 0 || trimmed.indexOf('tel:') === 0 || trimmed.indexOf('mailto:') === 0) {
+        return rawHref;
+      }
+      var url = new URL(trimmed, window.location.origin);
+      Object.keys(activeTracking).forEach(function(k) {
+        if (activeTracking[k]) url.searchParams.set(k, activeTracking[k]);
+      });
+      if (!activeTracking.fbc && url.searchParams.has('fbc')) {
+        url.searchParams.delete('fbc');
+      }
+      if (!activeTracking.fbclid && url.searchParams.has('fbclid')) {
+        url.searchParams.delete('fbclid');
+      }
+      if (!url.searchParams.has('src')) {
+        var srcVal = activeTracking.src || activeTracking.utm_source || url.searchParams.get('utm_source');
+        if (srcVal) url.searchParams.set('src', srcVal);
+      }
+      if (!url.searchParams.has('sck')) {
+        var sckParts = [
+          activeTracking.utm_campaign || url.searchParams.get('utm_campaign'),
+          activeTracking.utm_medium || url.searchParams.get('utm_medium'),
+          activeTracking.utm_content || url.searchParams.get('utm_content')
+        ].filter(Boolean);
+        if (sckParts.length) url.searchParams.set('sck', sckParts.join('|'));
+      }
+
+      // Repasse do event_id para desduplicação no checkout (Kiwify, Lowify, Hotmart, Braip, etc.)
+      var activeIcEventId = null;
+      try { activeIcEventId = sessionStorage.getItem('wt_last_ic_event_id'); } catch(e){}
+      if (activeIcEventId) {
+        url.searchParams.set('event_id', activeIcEventId);
+        url.searchParams.set('wt_event_id', activeIcEventId);
+      }
+
+      return url.toString();
+    } catch(e) {
+      return rawHref;
+    }
+  }
+
+  var checkoutDomains = [
+    'kiwify.com.br', 'pay.kiwify.com.br', 'lowify.com.br', 'pay.lowify.com.br',
+    'hotmart.com', 'pay.hotmart.com', 'braip.com', 'ev.braip.com',
+    'eduzz.com', 'sun.eduzz.com', 'monetizze.com.br', 'cakto.com.br',
+    'pay.cakto.com.br', 'yampi.com.br', 'greenn.com.br', 'kirvano.com',
+    'perfectpay.com.br', 'cartpanda.com', 'ticto.com.br', 'doppus.com',
+    'vega.com.br', 'tribopay.com.br', 'herospark.com', 'hub.la',
+    'lastlink.com', 'abmex.com.br', 'pepper.com.br', 'klinko.com'
+  ];
+
+  function isExcludedNonPurchase(href) {
+    if (!href || typeof href !== "string") return true;
+    var h = href.toLowerCase().trim();
+    if (h.indexOf('wa.me') !== -1 || h.indexOf('whatsapp.com') !== -1 || h.indexOf('whatsapp:') === 0 || h.indexOf('/go/') !== -1) return true;
+    if (h.indexOf('#') === 0 || h.indexOf('javascript:') === 0 || h.indexOf('tel:') === 0 || h.indexOf('mailto:') === 0) return true;
+    if (h.indexOf('instagram.com') !== -1 || h.indexOf('facebook.com') !== -1 || h.indexOf('youtube.com') !== -1 || h.indexOf('tiktok.com') !== -1 || h.indexOf('t.me') !== -1) return true;
+    if (h.indexOf('politica') !== -1 || h.indexOf('termos') !== -1 || h.indexOf('privacidade') !== -1 || h.indexOf('contato') !== -1) return true;
+    return false;
+  }
+
+  var checkoutUrl = "";
+  function isCheckoutUrl(rawHref) {
+    if (!rawHref) return false;
+    try {
+      var trimmed = rawHref.trim();
+      if (isExcludedNonPurchase(trimmed)) return false;
+      var parsed = new URL(trimmed, window.location.origin);
+      if (checkoutUrl && parsed.href.toLowerCase().indexOf(checkoutUrl.toLowerCase()) !== -1) return true;
+      if (parsed.origin === window.location.origin && !checkoutDomains.some(function(d){ return window.location.hostname.indexOf(d) !== -1; })) {
+        var p = parsed.pathname.toLowerCase();
+        if (p.indexOf('checkout') !== -1 || p.indexOf('comprar') !== -1 || p.indexOf('pagar') !== -1 || p.indexOf('pagamento') !== -1 || p.indexOf('order') !== -1) return true;
+        return false;
+      }
+      return checkoutDomains.some(function(d){ return parsed.hostname.indexOf(d) !== -1; });
+    } catch(e){ return false; }
+  }
+
+  // 4. Detecção de InitiateCheckout estritamente para botões de compra com deduplicação
+  var firedIc = false;
+  function canTriggerInitiateCheckout() {
+    try {
+      var lastFired = sessionStorage.getItem("wt_ic_fired_time");
+      var now = Date.now();
+      if (lastFired && (now - parseInt(lastFired, 10)) < 6000) return false;
+      sessionStorage.setItem("wt_ic_fired_time", String(now));
+      return true;
+    } catch(e) { return true; }
+  }
+
+  function triggerInitiateCheckout(btn) {
+    if (!canTriggerInitiateCheckout()) return;
+    firedIc = true;
+
+    var icEventId = "wt_ic_" + Date.now() + "_" + Math.floor(Math.random() * 1000000000);
+    try { sessionStorage.setItem("wt_last_ic_event_id", icEventId); } catch(e){}
+
+    try {
+      fbq('track', 'InitiateCheckout', { currency: 'BRL' }, { eventID: icEventId });
+    } catch(e){}
+
+    sendServerEvent("InitiateCheckout", icEventId, { currency: "BRL" });
+
+    if (btn) {
+      var aTag = btn.closest ? (btn.closest("a[href]") || (btn.tagName === "A" ? btn : null)) : null;
+      if (aTag) {
+        var href = aTag.getAttribute("href");
+        if (href) {
+          var updated = updateCheckoutUrl(href);
+          aTag.setAttribute("href", updated);
+        }
+      }
+      var formTag = btn.closest ? btn.closest("form[action]") : null;
+      if (formTag) {
+        var actionHref = formTag.getAttribute("action");
+        if (actionHref) {
+          var updatedAction = updateCheckoutUrl(actionHref);
+          formTag.setAttribute("action", updatedAction);
+        }
+      }
+    }
+  }
+
+  var buttonTexts = [];
+  var cssSelector = "";
+  var useKeywords = true;
+  var strictPurchasePhrases = [
+    'comprar agora', 'comprar', 'finalizar compra', 'finalizar pedido',
+    'adquirir agora', 'adquirir', 'garantir vaga', 'garantir minha vaga',
+    'garantir acesso', 'garantir agora', 'quero comprar', 'quero me inscrever',
+    'assinar agora', 'ir para o checkout', 'ir para checkout', 'efetuar pagamento',
+    'matricule-se', 'matricular agora'
+  ];
+
+  function matchesButton(el) {
+    if (!el) return false;
+    
+    var href = (el.getAttribute("href") || "").trim();
+    var text = (el.innerText || el.textContent || "").trim().toLowerCase();
+
+    if (isExcludedNonPurchase(href)) return false;
+    if (isCheckoutUrl(href)) return true;
+    if (el.classList && el.classList.contains("wt-checkout")) return true;
+
+    for (var i = 0; i < buttonTexts.length; i++) {
+      var targetText = (buttonTexts[i] || "").trim().toLowerCase();
+      if (targetText && text.indexOf(targetText) !== -1) return true;
+    }
+    if (buttonTexts.length > 0) return false;
+
+    if (useKeywords && (!("texto") || "texto" === "texto")) {
+      for (var j = 0; j < strictPurchasePhrases.length; j++) {
+        if (text.indexOf(strictPurchasePhrases[j]) !== -1) return true;
+      }
+    }
+    return false;
+  }
+
+  function injectCheckoutLinks() {
+    var links = document.querySelectorAll("a[href]");
+    links.forEach(function(link) {
+      var href = link.getAttribute("href");
+      if (!href || isExcludedNonPurchase(href)) return;
+      if (isCheckoutUrl(href) || link.classList.contains("wt-checkout") || matchesButton(link)) {
+        var updated = updateCheckoutUrl(href);
+        if (updated && updated !== href) {
+          link.setAttribute("href", updated);
+        }
+      }
+    });
+
+    var forms = document.querySelectorAll("form[action]");
+    forms.forEach(function(form) {
+      var action = form.getAttribute("action");
+      if (action && (isCheckoutUrl(action) || form.classList.contains("wt-checkout"))) {
+        Object.keys(activeTracking).forEach(function(k) {
+          if (activeTracking[k] && !form.querySelector('input[name="' + k + '"]')) {
+            var inp = document.createElement("input");
+            inp.type = "hidden";
+            inp.name = k;
+            inp.value = activeTracking[k];
+            form.appendChild(inp);
+          }
+        });
+      }
+    });
+  }
+
+  // Intercepta mousedown, pointerdown, touchstart e click para garantir injeção em botões dinâmicos (Elementor, Popups)
+  function handleInteraction(e) {
+    var target = e.target;
+    if (!target) return;
+    var btn = target.closest("button, a, [role='button'], input[type='submit']");
+    if (!btn) return;
+
+    // Dispara InitiateCheckout apenas no clique oficial de compra
+    if (e.type === "click" && matchesButton(btn)) {
+      triggerInitiateCheckout(btn);
+    }
+
+    // Injeta/atualiza parâmetros no link antes da navegação do navegador
+    var aTag = target.closest("a[href]");
+    if (aTag) {
+      var href = aTag.getAttribute("href");
+      if (href && !isExcludedNonPurchase(href) && (isCheckoutUrl(href) || aTag.classList.contains("wt-checkout") || matchesButton(aTag))) {
+        var updated = updateCheckoutUrl(href);
+        if (updated && updated !== href) {
+          aTag.setAttribute("href", updated);
+        }
+      }
+    }
+
+    // Suporte para botões que usam data-href ou data-url
+    var dataHref = btn.getAttribute("data-href") || btn.getAttribute("data-url");
+    if (dataHref && !isExcludedNonPurchase(dataHref) && (isCheckoutUrl(dataHref) || matchesButton(btn))) {
+      var updatedData = updateCheckoutUrl(dataHref);
+      btn.setAttribute("data-href", updatedData);
+      btn.setAttribute("data-url", updatedData);
+    }
+  }
+
+  ["pointerdown", "mousedown", "click", "touchstart"].forEach(function(evt) {
+    document.addEventListener(evt, handleInteraction, true);
+  });
+
+  // Executa imediatamente e no carregamento
+  injectCheckoutLinks();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", injectCheckoutLinks);
+  }
+  window.addEventListener("load", injectCheckoutLinks);
+
+  // Intervalos de retentativa para botões com delay (ex: Vturb, timers de oferta)
+  [300, 800, 1500, 3000, 5000, 10000].forEach(function(ms) {
+    setTimeout(injectCheckoutLinks, ms);
+  });
+
+  // Observador de mutações no DOM para novos elementos inseridos dinamicamente
+  if (window.MutationObserver) {
+    var initObserver = function() {
+      if (document.body) {
+        var obs = new MutationObserver(function() { injectCheckoutLinks(); });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+    };
+    if (document.body) {
+      initObserver();
+    } else {
+      document.addEventListener("DOMContentLoaded", initObserver);
+    }
+  }
+})();
+</script>
+
   <!-- OTIMIZACOES DE PERFORMANCE ULTRA-RAPIDA (ASSETS LOCAIS) -->
   <link rel="preload" href="assets/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="assets/img/webp/hero_mockup_320.webp" imagesrcset="assets/img/webp/hero_mockup_320.webp 320w, assets/img/webp/hero_mockup_480.webp 480w" imagesizes="(max-width: 480px) 320px, 480px" type="image/webp" fetchpriority="high">
@@ -926,350 +1324,6 @@
         closePremiumPopup();
       }
     });
-  </script>
-
-
-  
-  <!-- WhatsTrack Direct Response Pixel Tracker -->
-  <script>
-  (function() {
-    // 1. Inicializa o Meta Pixel nativo com fila leve na memória sem travar a thread
-    if (!window.fbq) {
-      window.fbq = function() {
-        if (window.fbq.callMethod) {
-          window.fbq.callMethod.apply(window.fbq, arguments);
-        } else {
-          window.fbq.queue.push(arguments);
-        }
-      };
-      if (!window._fbq) window._fbq = window.fbq;
-      window.fbq.push = window.fbq;
-      window.fbq.loaded = true;
-      window.fbq.version = '2.0';
-      window.fbq.queue = [];
-    }
-
-    fbq('init', '1607991243938020');
-    fbq('track', 'PageView');
-
-    // Carrega o script pesado externo da Meta de forma assíncrona após a renderização
-    function loadMetaScript() {
-      if (document.getElementById('meta-pixel-loader')) return;
-      var s = document.createElement('script');
-      s.id = 'meta-pixel-loader';
-      s.async = true;
-      s.src = 'https://connect.facebook.net/en_US/fbevents.js';
-      var first = document.getElementsByTagName('script')[0];
-      if (first && first.parentNode) {
-        first.parentNode.insertBefore(s, first);
-      } else {
-        (document.head || document.body).appendChild(s);
-      }
-    }
-
-    var trackingStarted = false;
-    function startTracking() {
-      if (trackingStarted) return;
-      trackingStarted = true;
-      loadMetaScript();
-    }
-
-    if (document.readyState === 'complete') {
-      setTimeout(startTracking, 4500);
-    } else {
-      window.addEventListener('load', function() { setTimeout(startTracking, 4500); });
-    }
-    ['touchstart', 'scroll', 'click'].forEach(function(ev) {
-      window.addEventListener(ev, startTracking, { once: true, passive: true });
-    });
-
-    // 2. Captura UTMs, fbclid e cookies para alta pontuação no CAPI
-    function getCookie(n){var m=document.cookie.match(new RegExp('(^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
-    function setCookie(n,v,d){var dt=new Date();dt.setTime(dt.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+dt.toUTCString()+';path=/;SameSite=Lax';}
-
-    function isValidFbclid(val){
-      if(!val||typeof val!=='string') return false;
-      val=val.trim();
-      if(val.length<20||val==='null'||val==='undefined'||val==='none'||val==='false'||val==='fbclid') return false;
-      if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)) return false;
-      if(/^(clk_|ord_|tra_|pay_|chk_|ref_|sub_|lead_|usr_)/i.test(val)) return false;
-      return /^[a-zA-Z0-9_-]+$/.test(val);
-    }
-
-    function isValidFbc(val){
-      if(!val||typeof val!=='string') return false;
-      var parts = val.split('.');
-      if(parts.length < 4) return false;
-      if(parts[0] !== 'fb' || parts[1] !== '1') return false;
-      if(!/^[0-9]{10,14}$/.test(parts[2])) return false;
-      var fbclidPart = parts.slice(3).join('.');
-      return isValidFbclid(fbclidPart);
-    }
-
-    var fbp = getCookie('_fbp');
-    if(!fbp){
-      fbp = 'fb.1.' + Date.now() + '.' + Math.floor(1e9 + Math.random()*9e9);
-      setCookie('_fbp', fbp, 90);
-    }
-
-    var params = new URLSearchParams(window.location.search);
-    var activeTracking = {};
-    
-    // Coleta todos os parâmetros da URL atual
-    params.forEach(function(val, key) {
-      if (val && typeof val === "string") {
-        var clean = val.trim();
-        activeTracking[key] = clean;
-        try { sessionStorage.setItem("wt_" + key, clean); } catch(e){}
-        try { localStorage.setItem("wt_" + key, clean); } catch(e){}
-      }
-    });
-
-    // Recupera parâmetros padrão persistidos se não estiverem na URL atual
-    var standardKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id", "src", "sck", "fbclid", "gclid", "ttclid", "xcod"];
-    standardKeys.forEach(function(key) {
-      if (!activeTracking[key]) {
-        try {
-          var saved = sessionStorage.getItem("wt_" + key) || localStorage.getItem("wt_" + key);
-          if (saved) activeTracking[key] = saved;
-        } catch(e){}
-      }
-    });
-
-    // Preservação estrita do _fbc existente apenas se for legítimo da Meta
-    var existingFbc = getCookie('_fbc');
-    if (existingFbc && isValidFbc(existingFbc)) {
-      activeTracking.fbc = existingFbc;
-    } else {
-      if (existingFbc && !isValidFbc(existingFbc)) {
-        setCookie('_fbc', '', -1);
-      }
-      if (activeTracking.fbclid && isValidFbclid(activeTracking.fbclid)) {
-        var fbc = 'fb.1.' + Date.now() + '.' + activeTracking.fbclid;
-        setCookie('_fbc', fbc, 90);
-        activeTracking.fbc = fbc;
-      } else {
-        delete activeTracking.fbclid;
-        delete activeTracking.fbc;
-      }
-    }
-    activeTracking.fbp = fbp;
-
-    // 3. Injeta e atualiza links de checkout sem duplicar query params
-    function updateCheckoutUrl(rawHref) {
-      if (!rawHref || typeof rawHref !== "string") return rawHref;
-      try {
-        var trimmed = rawHref.trim();
-        if (trimmed.indexOf('#') === 0 || trimmed.indexOf('javascript:') === 0 || trimmed.indexOf('tel:') === 0 || trimmed.indexOf('mailto:') === 0) {
-          return rawHref;
-        }
-        var url = new URL(trimmed, window.location.origin);
-        Object.keys(activeTracking).forEach(function(k) {
-          if (activeTracking[k]) url.searchParams.set(k, activeTracking[k]);
-        });
-        if (!activeTracking.fbc && url.searchParams.has('fbc')) {
-          url.searchParams.delete('fbc');
-        }
-        if (!activeTracking.fbclid && url.searchParams.has('fbclid')) {
-          url.searchParams.delete('fbclid');
-        }
-        if (!url.searchParams.has('src')) {
-          var srcVal = activeTracking.src || activeTracking.utm_source || url.searchParams.get('utm_source');
-          if (srcVal) url.searchParams.set('src', srcVal);
-        }
-        if (!url.searchParams.has('sck')) {
-          var sckParts = [
-            activeTracking.utm_campaign || url.searchParams.get('utm_campaign'),
-            activeTracking.utm_medium || url.searchParams.get('utm_medium'),
-            activeTracking.utm_content || url.searchParams.get('utm_content')
-          ].filter(Boolean);
-          if (sckParts.length) url.searchParams.set('sck', sckParts.join('|'));
-        }
-        return url.toString();
-      } catch(e) {
-        return rawHref;
-      }
-    }
-
-    var checkoutDomains = [
-      'kiwify.com.br', 'pay.kiwify.com.br', 'lowify.com.br', 'pay.lowify.com.br',
-      'hotmart.com', 'pay.hotmart.com', 'braip.com', 'ev.braip.com',
-      'eduzz.com', 'sun.eduzz.com', 'monetizze.com.br', 'cakto.com.br',
-      'pay.cakto.com.br', 'yampi.com.br', 'greenn.com.br', 'kirvano.com',
-      'perfectpay.com.br', 'cartpanda.com', 'ticto.com.br', 'doppus.com',
-      'vega.com.br', 'tribopay.com.br', 'herospark.com', 'hub.la',
-      'lastlink.com', 'abmex.com.br', 'pepper.com.br', 'klinko.com'
-    ];
-
-    function isExcludedNonPurchase(href) {
-      if (!href || typeof href !== "string") return true;
-      var h = href.toLowerCase().trim();
-      if (h.indexOf('wa.me') !== -1 || h.indexOf('whatsapp.com') !== -1 || h.indexOf('whatsapp:') === 0 || h.indexOf('/go/') !== -1) return true;
-      if (h.indexOf('#') === 0 || h.indexOf('javascript:') === 0 || h.indexOf('tel:') === 0 || h.indexOf('mailto:') === 0) return true;
-      if (h.indexOf('instagram.com') !== -1 || h.indexOf('facebook.com') !== -1 || h.indexOf('youtube.com') !== -1 || h.indexOf('tiktok.com') !== -1 || h.indexOf('t.me') !== -1) return true;
-      if (h.indexOf('politica') !== -1 || h.indexOf('termos') !== -1 || h.indexOf('privacidade') !== -1 || h.indexOf('contato') !== -1) return true;
-      return false;
-    }
-
-    var checkoutUrl = "";
-    function isCheckoutUrl(rawHref) {
-      if (!rawHref) return false;
-      try {
-        var trimmed = rawHref.trim();
-        if (isExcludedNonPurchase(trimmed)) return false;
-        var parsed = new URL(trimmed, window.location.origin);
-        if (checkoutUrl && parsed.href.toLowerCase().indexOf(checkoutUrl.toLowerCase()) !== -1) return true;
-        if (parsed.origin === window.location.origin && !checkoutDomains.some(function(d){ return window.location.hostname.indexOf(d) !== -1; })) {
-          var p = parsed.pathname.toLowerCase();
-          if (p.indexOf('checkout') !== -1 || p.indexOf('comprar') !== -1 || p.indexOf('pagar') !== -1 || p.indexOf('pagamento') !== -1 || p.indexOf('order') !== -1) return true;
-          return false;
-        }
-        return checkoutDomains.some(function(d){ return parsed.hostname.indexOf(d) !== -1; });
-      } catch(e){ return false; }
-    }
-
-    // 4. Detecção de InitiateCheckout estritamente para botões de compra
-    var firedIc = false;
-    function triggerInitiateCheckout() {
-      try { loadMetaScript(); } catch(e){}
-      if (firedIc) return;
-      firedIc = true;
-      try {
-        fbq('track', 'InitiateCheckout');
-      } catch(e){}
-    }
-
-    var buttonTexts = [];
-    var cssSelector = "";
-    var useKeywords = true;
-    var strictPurchasePhrases = [
-      'comprar agora', 'comprar', 'finalizar compra', 'finalizar pedido',
-      'adquirir agora', 'adquirir', 'garantir vaga', 'garantir minha vaga',
-      'garantir acesso', 'garantir agora', 'quero comprar', 'quero me inscrever',
-      'assinar agora', 'ir para o checkout', 'ir para checkout', 'efetuar pagamento',
-      'matricule-se', 'matricular agora'
-    ];
-
-    function matchesButton(el) {
-      if (!el) return false;
-      
-      var href = (el.getAttribute("href") || "").trim();
-      var text = (el.innerText || el.textContent || "").trim().toLowerCase();
-
-      if (isExcludedNonPurchase(href)) return false;
-      if (isCheckoutUrl(href)) return true;
-      if (el.classList && el.classList.contains("wt-checkout")) return true;
-
-      for (var i = 0; i < buttonTexts.length; i++) {
-        var targetText = (buttonTexts[i] || "").trim().toLowerCase();
-        if (targetText && text.indexOf(targetText) !== -1) return true;
-      }
-      if (buttonTexts.length > 0) return false;
-
-      if (useKeywords && (!("texto") || "texto" === "texto")) {
-        for (var j = 0; j < strictPurchasePhrases.length; j++) {
-          if (text.indexOf(strictPurchasePhrases[j]) !== -1) return true;
-        }
-      }
-      return false;
-    }
-
-    function injectCheckoutLinks() {
-      var links = document.querySelectorAll("a[href]");
-      links.forEach(function(link) {
-        var href = link.getAttribute("href");
-        if (!href || isExcludedNonPurchase(href)) return;
-        if (isCheckoutUrl(href) || link.classList.contains("wt-checkout") || matchesButton(link)) {
-          var updated = updateCheckoutUrl(href);
-          if (updated && updated !== href) {
-            link.setAttribute("href", updated);
-          }
-        }
-      });
-
-      var forms = document.querySelectorAll("form[action]");
-      forms.forEach(function(form) {
-        var action = form.getAttribute("action");
-        if (action && (isCheckoutUrl(action) || form.classList.contains("wt-checkout"))) {
-          Object.keys(activeTracking).forEach(function(k) {
-            if (activeTracking[k] && !form.querySelector('input[name="' + k + '"]')) {
-              var inp = document.createElement("input");
-              inp.type = "hidden";
-              inp.name = k;
-              inp.value = activeTracking[k];
-              form.appendChild(inp);
-            }
-          });
-        }
-      });
-    }
-
-    // Intercepta mousedown, pointerdown, touchstart e click para garantir injeção em botões dinâmicos (Elementor, Popups)
-    function handleInteraction(e) {
-      var target = e.target;
-      if (!target) return;
-      var btn = target.closest("button, a, [role='button'], input[type='submit']");
-      if (!btn) return;
-
-      // Dispara InitiateCheckout apenas no clique oficial de compra
-      if (e.type === "click" && matchesButton(btn)) {
-        triggerInitiateCheckout();
-      }
-
-      // Injeta/atualiza parâmetros no link antes da navegação do navegador
-      var aTag = target.closest("a[href]");
-      if (aTag) {
-        var href = aTag.getAttribute("href");
-        if (href && !isExcludedNonPurchase(href) && (isCheckoutUrl(href) || aTag.classList.contains("wt-checkout") || matchesButton(aTag))) {
-          var updated = updateCheckoutUrl(href);
-          if (updated && updated !== href) {
-            aTag.setAttribute("href", updated);
-          }
-        }
-      }
-
-      // Suporte para botões que usam data-href ou data-url
-      var dataHref = btn.getAttribute("data-href") || btn.getAttribute("data-url");
-      if (dataHref && !isExcludedNonPurchase(dataHref) && (isCheckoutUrl(dataHref) || matchesButton(btn))) {
-        var updatedData = updateCheckoutUrl(dataHref);
-        btn.setAttribute("data-href", updatedData);
-        btn.setAttribute("data-url", updatedData);
-      }
-    }
-
-    ["pointerdown", "mousedown", "click", "touchstart"].forEach(function(evt) {
-      document.addEventListener(evt, handleInteraction, true);
-    });
-
-    // Executa imediatamente e no carregamento
-    injectCheckoutLinks();
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", injectCheckoutLinks);
-    }
-    window.addEventListener("load", injectCheckoutLinks);
-
-    // Intervalos de retentativa para botões com delay (ex: Vturb, timers de oferta)
-    setTimeout(injectCheckoutLinks, 1000);
-
-    // Observador de mutações no DOM para novos elementos inseridos dinamicamente
-    if (window.MutationObserver) {
-      var mutTimer = null;
-      var initObserver = function() {
-        if (document.body) {
-          var obs = new MutationObserver(function() {
-            clearTimeout(mutTimer);
-            mutTimer = setTimeout(injectCheckoutLinks, 300);
-          });
-          obs.observe(document.body, { childList: true, subtree: true });
-        }
-      };
-      if (document.body) {
-        initObserver();
-      } else {
-        document.addEventListener("DOMContentLoaded", initObserver);
-      }
-    }
-  })();
   </script>
 
 </body>
